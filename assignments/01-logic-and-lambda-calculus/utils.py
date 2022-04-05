@@ -1,4 +1,6 @@
 import re
+import sys
+
 from IPython.display import display, Markdown, Latex
 def _to_latex(text):
     text = str(text)
