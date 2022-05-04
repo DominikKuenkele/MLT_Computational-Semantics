@@ -38,9 +38,6 @@ def main():
             # run sentences through the model
             output = model(sentences)
 
-            print('Sentence:', sentences)
-            print('Labels', labels)
-            print('Output', output)
             #embed()
             #assert False
 

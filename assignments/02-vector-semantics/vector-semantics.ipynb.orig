@@ -1,0 +1,2183 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "# A2: Vector Semantics\n",
+    "\n",
+    "Nikolai Ilinykh, Mehdi Ghanimifard, Wafia Adouane and Simon Dobnik\n",
+    "\n",
+    "\n",
+    "The lab is an exploration and learning exercise to be done in a group and also in discussion with the teachers and other students.\n",
+    "\n",
+    "Write all your answers and the code in the appropriate boxes below.\n",
+    "\n",
+    "---\n",
+    "\n",
+    "In this lab we will look at how to build distributional semantic models from corpora and use semantic similarity captured by these models to do semantic tasks. We are also going to examine how different vector composition functions for phrases affect both the model and the learned information about similarities.  \n",
+    "\n",
+    "Note that this lab uses a code from `dist_erk.py`, which contains functions that highly resemble those shown during the lecture. In the end, you can use either of the functions (from the lecture / from the file) to solve the tasks."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# the following command simply imports all the methods from that code.\n",
+    "from dist_erk import *"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## 1. Loading a corpus\n",
+    "\n",
+    "**Important**: All necessary files which are used in this notebook are available on mlt-gpu, check `/srv/data/computational-semantics-assignment-02`.\n",
+    "\n",
+    "To train a distributional model, we first need a sufficiently large collection of texts which contain different words used frequently enough in different contexts. Here we will use a section of the Wikipedia corpus (`wikipedia.txt`. This file has been borrowed from another lab by [Richard Johansson](http://www.cse.chalmers.se/~richajo/).\n",
+    "\n",
+    "When unpacked, the file is 151mb, hence if you are using the MLT servers you should store it in a temporary folder outside your home and adjust the `corpus_dir` path below.  \n",
+    "<!-- <It may already exist in `/opt/mlt/courses/cl2015/a5`.> -->\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "corpus_dir = '/srv/data/computational-semantics-assignment-02/'"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## 2. Building a model\n",
+    "\n",
+    "Now you are ready to build the model.  \n",
+    "Using the methods from the code imported above build three word matrices with 1000 dimensions as follows:  \n",
+    "\n",
+    "(i) with raw counts (saved to a variable `space_1k`);  \n",
+    "(ii) with PPMI (`ppmispace_1k`);  \n",
+    "(iii) with reduced dimensions SVD (`svdspace_1k`).  \n",
+    "For the latter use `svddim=5`. **[5 marks]**\n",
+    "\n",
+    "Your task is to replace `...` with function calls. Functions are imported from `dist_erk.py` earlier, and they largely resemble functions shown during the lecture."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "reading file wikipedia.txt\n"
+     ]
+    }
+   ],
+   "source": [
+    "numdims = 1000\n",
+    "svddim = 5\n",
+    "\n",
+    "# which words to use as targets and context words?\n",
+    "# we need to count the words and keep only the N most frequent ones\n",
+    "# which function would you use here with which variable?\n",
+    "ktw = do_word_count(corpus_dir, numdims)\n",
+    "\n",
+    "wi = make_word_index(ktw)  # word index\n",
+    "words_in_order = sorted(wi.items(), key=lambda x: x[1])  # sorted words"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "create count matrices\n",
+      "reading file wikipedia.txt\n",
+      "ppmi transform\n",
+      "svd transform\n",
+      "done.\n"
+     ]
+    }
+   ],
+   "source": [
+    "# create different spaces (the original matrix space, the ppmi space, the svd space)\n",
+    "# which functions with which arguments would you use here?\n",
+    "print('create count matrices')\n",
+    "space_1k = make_space(corpus_dir, wi, numdims)\n",
+    "print('ppmi transform')\n",
+    "ppmispace_1k = ppmi_transform(space_1k, wi)\n",
+    "print('svd transform')\n",
+    "svdspace_1k = svd_transform(ppmispace_1k, numdims, svddim)\n",
+    "print('done.')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "house: [2554 3774 3105  567  962  631  443  185  311  189  131   28   93  169\n",
+      "   81  125  151  408  194   90   79   29  217  184   62   15   31   70\n",
+      "   10    1   41   21    1   31   37    1   30    5   25    7    3   20\n",
+      "   11    1   32   36    2    5   66    4    0   46    8   18   28    0\n",
+      "   20    7    8   16   10   40    0  175   10    2    7   19    1  174\n",
+      "   11    3    1    6    0    0    0   10    9   11    7   24    4    4\n",
+      "   14   23   58    7    0   10    2    3   10    6   18    6   13    3\n",
+      "   22    0    3    5    3    7   14    3   40   20   19   15    6    8\n",
+      "   24    4    5    1   19    0    3    1    0   14    0   14   53    7\n",
+      "    7   11    6    5    5    4   12    6   53    1    1  433    4    0\n",
+      "    5    7    7   12    1    1    3    4   17    8   16    1    2   31\n",
+      "    1   12   14    1   44    6   14    9   38    7    2    6    8    1\n",
+      "   10    6   10    1    9    7    9    4    3   10    0   11    3    2\n",
+      "    0    2   11   37    2    0    2    1    5    9   10   16   88    6\n",
+      "    0   21    1    1    0    2   47    3   27    7    0    2   13    1\n",
+      "    2    0    5   31    0    1    0    3   10    0    1    0    3    3\n",
+      "   17    1    1   16    3    7    4    7   15    4    0    0    2    5\n",
+      "    0    2    0    5    0    9    0    0    8    0   10    0    0    0\n",
+      "    2    0    1    3    1    3   15    1    9    0   19   14    0    0\n",
+      "    3    2   18    3    1    3    2   19    5    2    4    1   10    6\n",
+      "    0    3    3    6    4    2   25    4    6    3    1   25   10   15\n",
+      "    3   10   15    1   10    1    8    1   13    1    2    9    9    1\n",
+      "    4    1   25    0    4    6    5    5   36    0    2    2    2    0\n",
+      "    0    2    3    3    0    1    4    6    5    0   50    2    5    2\n",
+      "   14    6    2    2    4    1    9    4    5    3    1    0   12    3\n",
+      "    3    2    2    0    0    1    4    7   12    5    0    2    1    2\n",
+      "    3    4    7    3    5    0   29    7    1    1    0    3    3    3\n",
+      "   10    0   14    2    0    2    4    6    0    5    0    0    1    1\n",
+      "    4    1    1    0    0    0    0    3   20    0    0    2    1    5\n",
+      "    3    8    3    5    1    2   66    1    2   19    2    1    3    3\n",
+      "   21    5    4    2    2    0    4    3    5    0    7    1    6    1\n",
+      "    3    3    1    0    3    0    2    0   89    2    3    1    1   14\n",
+      "    0    2    1    9    2    3    2    4    2    0   25    0    0   23\n",
+      "    0    6    2    1    3    0    2    5    0    4    4    3    0    4\n",
+      "   58    3    1    6    2    4    3    3   11    1    1    1   10    0\n",
+      "    7    3    1    6    1   18    1    0    4    2    0    8    5    2\n",
+      "    0    0    0    0    5    1    2    1    1    3    1    2    1    1\n",
+      "    0    6    1    4    1    3   20    1    0    5    2    5    2    1\n",
+      "    0    0    0    2    6    1    1    0    1    1    1    0    0    3\n",
+      "    3    0    0    6    6   74    3    0   13    5    2    2    1    5\n",
+      "    3    3    1    7    4    0    0    2    3    0    4    0    4    1\n",
+      "    0    2    5    2    1   14    2    0    0   19    0    1    2    1\n",
+      "    0    3    2    0    0    3    1    3    3    2    7   18    7    6\n",
+      "    6    0    1    9    1   10    2    0    2    0    2    4    0    0\n",
+      "    1    2    0    1    0    2    0    0    0    2    1    2    2    0\n",
+      "    3    2    2    0    0    1    2    3    1    1    1    2    0    0\n",
+      "    3    0    7    2   39    0   14    0    1    1    0    1    5    3\n",
+      "   11    0    3    0    1    1    0    0    1    9    2    1    0   11\n",
+      "    1    3    7    0    0    0   32    1    0    0    0    1    1    3\n",
+      "    0    9    0    2    0    1    3    2    6    0    3    0    0    2\n",
+      "    3    0    1    0    1    4    0    0    1    1    0    0    5   21\n",
+      "    2    1    1    3    0    1    7    1    3    4    0    5    3    0\n",
+      "    7    2    0    4    2    0    2    1    4    4    0    0    0    5\n",
+      "    3    2    2    0    4    0   23    2    2    2    4    0    1    0\n",
+      "    4    0    3    5    3    0    8    0    1   16    1    2    2    7\n",
+      "    0    0    1   11    1    0    4    0    1    0    1    2    1    5\n",
+      "    0   97    0    2    0    3    0    8    1   14    4    9    2    3\n",
+      "    1    1    0    3    4    0    5    1    5    2    0    0    0    2\n",
+      "    1    2    1    1    1    1   12    0    2    5    1    0    0   13\n",
+      "    2    0    0    0    2    2    0    0    3    1    1    1    1    0\n",
+      "    1    2    1    0    0    0   10    0    1    0    1    1    1    1\n",
+      "    0    1    0    0    3    2    5    0    0    2    1    0   23    0\n",
+      "    0    4    0    1    0    0    0    1    1    2    1    0    1    0\n",
+      "    0    4    1    0    1    1    5    1    1    0    1    0    0    0\n",
+      "    1    0    0    2    2    3    0    1    0    4    3    3    1    4\n",
+      "    0    0    0    6    1    2    1    0    5    3    0    0    1    2\n",
+      "    0    5    0    0    2    1    1    4   15    0    0    1    1    3\n",
+      "    1    0    1    4    1    1    2    8    1    3    0    0    0    0\n",
+      "    1    3    2    1    0    1    0    2    0    0    0    0    1    1\n",
+      "    0    1    3    7    0    0   42    4    0    1    2    3    1    0\n",
+      "    1    3    2    0    0    4    0    0    0    4    2    0    0    8\n",
+      "    2    0    1   15    0    0]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# now, to test the space, you can print vector representation for some words\n",
+    "print('house:', space_1k['house'])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Oxford Advanced Dictionary has 185,000 words, hence 1,000 words is not representative. We trained a model with 10,000 words, and 50 dimensions on truncated SVD. It took 40 minutes on a laptop. All matrices are available on mlt-gpu: `ktw_wikipediaktw.npy`, `raw_wikipediaktw.npy`, `ppmi_wikipediaktw.npy`, `svd50_wikipedia10k.npy`. Make sure they are in your path, because they will be loaded below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Please wait...\n",
+      "Done.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import numpy as np\n",
+    "\n",
+    "numdims = 10000\n",
+    "svddim = 50\n",
+    "\n",
+    "print('Please wait...')\n",
+    "ktw_10k = np.load(f'{corpus_dir}ktw_wikipediaktw.npy', allow_pickle=True)\n",
+    "space_10k = np.load(f'{corpus_dir}raw_wikipediaktw.npy', allow_pickle=True).all()\n",
+    "ppmispace_10k = np.load(f'{corpus_dir}ppmi_wikipediaktw.npy', allow_pickle=True).all()\n",
+    "svdspace_10k = np.load(f'{corpus_dir}svd50_wikipedia10k.npy', allow_pickle=True).all()\n",
+    "print('Done.')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "house: [2554 3774 3105 ...    0    0    0]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# testing semantic space\n",
+    "print('house:', space_10k['house'])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## 3. Testing semantic similarity\n",
+    "\n",
+    "The file `similarity_judgements.txt` (a copy is included with this notebook) contains 7,576 pairs of words and their lexical and visual similarities (based on the pictures) collected through crowd-sourcing using Mechanical Turk as described in [1]. The score range from 1 (highly dissimilar) to 5 (highly similar). Note: this is a different dataset from the phrase similarity dataset we discussed during the lecture (the one from [2]). For more information, please read the papers.\n",
+    "\n",
+    "The following code will transform similarity scores into a Python-friendly format:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "number of available words to test: 12\n",
+      "number of available word pairs to test: 774\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "[(('stick', 'sword'), 3.4, 2.6),\n",
+       " (('cabin', 'cabinet'), 1.75, 2.25),\n",
+       " (('chicken', 'sparrow'), 3.0, 4.5),\n",
+       " (('bag', 'gate'), 1.0, 1.5),\n",
+       " (('bull', 'trumpet'), 1.0, 1.25),\n",
+       " (('balloon', 'brick'), 1.0, 1.0),\n",
+       " (('helicopter', 'jet'), 2.6, 4.6),\n",
+       " (('cape', 'spider'), 1.0, 1.2),\n",
+       " (('boots', 'mouse'), 1.0, 1.0),\n",
+       " (('kite', 'marble'), 1.0, 1.0),\n",
+       " (('box', 'horse'), 1.0, 1.0),\n",
+       " (('doll', 'elephant'), 1.0, 1.0),\n",
+       " (('brick', 'cannon'), 1.0, 1.0),\n",
+       " (('ruler', 'turkey'), 1.0, 1.0),\n",
+       " (('pan', 'pot'), 4.0, 4.75),\n",
+       " (('bottle', 'orange'), 1.0, 1.25),\n",
+       " (('plate', 'rock'), 1.75, 1.5),\n",
+       " (('subway', 'wall'), 1.25, 1.25),\n",
+       " (('cup', 'level'), 1.0, 1.2),\n",
+       " (('book', 'submarine'), 1.0, 1.0),\n",
+       " (('bus', 'gun'), 1.0, 1.0),\n",
+       " (('inn', 'telephone'), 1.0, 1.4),\n",
+       " (('bike', 'hook'), 1.0, 1.0),\n",
+       " (('building', 'car'), 1.2, 1.6),\n",
+       " (('airplane', 'truck'), 1.2, 3.4),\n",
+       " (('cat', 'rabbit'), 2.75, 4.5),\n",
+       " (('cedar', 'pine'), 4.5, 4.75),\n",
+       " (('corn', 'oak'), 1.75, 2.25),\n",
+       " (('chapel', 'magazine'), 1.0, 1.0),\n",
+       " (('book', 'bureau'), 1.0, 1.4),\n",
+       " (('boat', 'mirror'), 1.0, 1.0),\n",
+       " (('donkey', 'turkey'), 1.0, 2.2),\n",
+       " (('cork', 'dog'), 1.0, 1.0),\n",
+       " (('airplane', 'rope'), 1.0, 1.0),\n",
+       " (('beans', 'belt'), 1.0, 1.0),\n",
+       " (('box', 'subway'), 1.0, 1.25),\n",
+       " (('hammer', 'spider'), 1.0, 1.0),\n",
+       " (('cup', 'tie'), 1.0, 1.0),\n",
+       " (('level', 'ruler'), 3.2, 2.8),\n",
+       " (('cabin', 'wall'), 2.0, 2.8),\n",
+       " (('bomb', 'shoes'), 1.4, 1.2),\n",
+       " (('bureau', 'pot'), 1.0, 1.25),\n",
+       " (('ruler', 'sink'), 1.0, 1.0),\n",
+       " (('chapel', 'rifle'), 1.0, 1.0),\n",
+       " (('boots', 'bridge'), 1.0, 1.0),\n",
+       " (('drum', 'rope'), 1.0, 1.0),\n",
+       " (('cage', 'wheel'), 1.0, 1.0),\n",
+       " (('pig', 'pot'), 1.0, 1.0),\n",
+       " (('horse', 'robin'), 1.0, 1.8),\n",
+       " (('buffalo', 'lion'), 1.8, 2.6),\n",
+       " (('ship', 'truck'), 1.0, 3.0),\n",
+       " (('bag', 'stick'), 1.0, 1.0),\n",
+       " (('brick', 'building'), 1.25, 2.5),\n",
+       " (('beans', 'radio'), 1.0, 1.0),\n",
+       " (('chapel', 'wheel'), 1.0, 1.0),\n",
+       " (('chair', 'rifle'), 1.0, 1.0),\n",
+       " (('coat', 'pan'), 1.0, 1.0),\n",
+       " (('rabbit', 'wall'), 1.0, 1.0),\n",
+       " (('football', 'hare'), 1.25, 1.0),\n",
+       " (('bowl', 'box'), 1.75, 2.5),\n",
+       " (('shield', 'spear'), 1.5, 3.6),\n",
+       " (('balloon', 'van'), 1.0, 1.0),\n",
+       " (('corn', 'rice'), 2.5, 4.4),\n",
+       " (('chicken', 'hare'), 1.25, 2.2),\n",
+       " (('clock', 'ruler'), 1.0, 1.6),\n",
+       " (('horse', 'pine'), 1.0, 1.0),\n",
+       " (('missile', 'violin'), 1.0, 1.0),\n",
+       " (('bomb', 'hammer'), 1.25, 1.5),\n",
+       " (('armour', 'boots'), 1.5, 2.0),\n",
+       " (('crown', 'trumpet'), 1.25, 1.5),\n",
+       " (('bomb', 'wheel'), 1.0, 1.0),\n",
+       " (('bull', 'horse'), 3.67, 3.5),\n",
+       " (('radio', 'rice'), 1.0, 1.0),\n",
+       " (('apartment', 'key'), 1.0, 1.5),\n",
+       " (('belt', 'pin'), 1.25, 2.0),\n",
+       " (('buffalo', 'rabbit'), 1.25, 2.75),\n",
+       " (('boat', 'spear'), 1.25, 1.25),\n",
+       " (('key', 'pin'), 1.75, 1.0),\n",
+       " (('radio', 'ruler'), 1.0, 1.0),\n",
+       " (('bureau', 'table'), 3.25, 3.25),\n",
+       " (('building', 'door'), 1.75, 2.0),\n",
+       " (('bear', 'bread'), 1.0, 1.25),\n",
+       " (('cup', 'horse'), 1.0, 1.0),\n",
+       " (('radio', 'submarine'), 1.0, 1.25),\n",
+       " (('dish', 'missile'), 1.0, 1.0),\n",
+       " (('bottle', 'dog'), 1.0, 1.0),\n",
+       " (('bullet', 'gun'), 1.25, 3.25),\n",
+       " (('balloon', 'python'), 1.0, 1.0),\n",
+       " (('subway', 'train'), 3.75, 4.5),\n",
+       " (('crow', 'donkey'), 1.25, 1.5),\n",
+       " (('banner', 'building'), 1.0, 1.25),\n",
+       " (('balloon', 'bed'), 1.0, 1.0),\n",
+       " (('corn', 'tomato'), 1.5, 3.0),\n",
+       " (('cage', 'oak'), 1.0, 1.0),\n",
+       " (('jet', 'pen'), 1.5, 1.0),\n",
+       " (('bus', 'truck'), 3.75, 4.0),\n",
+       " (('bowl', 'bread'), 1.0, 1.5),\n",
+       " (('helmet', 'sword'), 1.0, 1.8),\n",
+       " (('chicken', 'mouse'), 1.0, 2.0),\n",
+       " (('bear', 'radio'), 1.0, 1.0),\n",
+       " (('brick', 'wheel'), 1.0, 1.0),\n",
+       " (('cathedral', 'sink'), 1.0, 1.0),\n",
+       " (('pan', 'rock'), 1.33, 1.0),\n",
+       " (('bullet', 'clock'), 1.0, 1.0),\n",
+       " (('canary', 'pot'), 1.0, 1.0),\n",
+       " (('guitar', 'trumpet'), 1.2, 3.8),\n",
+       " (('cat', 'coat'), 1.0, 1.0),\n",
+       " (('beaver', 'sink'), 1.0, 1.0),\n",
+       " (('boat', 'bus'), 1.6, 3.6),\n",
+       " (('eagle', 'fox'), 1.2, 2.0),\n",
+       " (('deer', 'hawk'), 1.2, 2.0),\n",
+       " (('doll', 'submarine'), 1.0, 1.0),\n",
+       " (('mirror', 'turkey'), 1.0, 1.0),\n",
+       " (('penguin', 'spider'), 1.2, 1.8),\n",
+       " (('airplane', 'bridge'), 1.4, 1.2),\n",
+       " (('plate', 'stone'), 1.33, 1.0),\n",
+       " (('boat', 'train'), 1.67, 3.6),\n",
+       " (('apple', 'clock'), 1.2, 1.0),\n",
+       " (('pen', 'rifle'), 1.8, 1.0),\n",
+       " (('bowl', 'goat'), 1.0, 1.0),\n",
+       " (('gun', 'ship'), 1.2, 1.0),\n",
+       " (('spider', 'violin'), 1.0, 1.0),\n",
+       " (('bottle', 'hawk'), 1.0, 1.0),\n",
+       " (('cathedral', 'raven'), 1.0, 1.0),\n",
+       " (('book', 'fork'), 1.0, 1.0),\n",
+       " (('drum', 'guitar'), 1.5, 3.5),\n",
+       " (('bus', 'train'), 3.5, 4.0),\n",
+       " (('cork', 'violin'), 1.0, 1.0),\n",
+       " (('magazine', 'wall'), 1.0, 1.0),\n",
+       " (('crown', 'pyramid'), 1.5, 1.5),\n",
+       " (('donkey', 'horse'), 4.75, 4.5),\n",
+       " (('cheese', 'crown'), 1.0, 1.0),\n",
+       " (('tie', 'violin'), 1.5, 1.0),\n",
+       " (('plate', 'train'), 1.0, 1.0),\n",
+       " (('church', 'radio'), 1.0, 1.0),\n",
+       " (('football', 'shield'), 1.25, 1.0),\n",
+       " (('key', 'piano'), 1.0, 1.5),\n",
+       " (('helicopter', 'ship'), 1.4, 3.2),\n",
+       " (('robin', 'sparrow'), 4.6, 4.4),\n",
+       " (('helmet', 'tomato'), 1.4, 1.0),\n",
+       " (('car', 'wheel'), 1.6, 2.8),\n",
+       " (('spear', 'telephone'), 1.0, 1.0),\n",
+       " (('pan', 'trumpet'), 1.6, 1.0),\n",
+       " (('banner', 'bull'), 1.0, 1.0),\n",
+       " (('chicken', 'turkey'), 4.4, 4.8),\n",
+       " (('clock', 'telephone'), 1.4, 1.6),\n",
+       " (('cat', 'piano'), 1.0, 1.0),\n",
+       " (('cork', 'rope'), 1.2, 1.2),\n",
+       " (('bridge', 'deer'), 1.2, 1.0),\n",
+       " (('apartment', 'building'), 4.0, 3.8),\n",
+       " (('bed', 'hammer'), 1.0, 1.0),\n",
+       " (('cup', 'pyramid'), 1.4, 1.0),\n",
+       " (('cape', 'rope'), 1.2, 1.0),\n",
+       " (('robin', 'violin'), 1.0, 1.0),\n",
+       " (('crow', 'pen'), 1.0, 1.0),\n",
+       " (('beaver', 'drill'), 1.0, 1.25),\n",
+       " (('missile', 'rocket'), 5.0, 4.75),\n",
+       " (('canary', 'train'), 1.0, 1.0),\n",
+       " (('apartment', 'hook'), 1.0, 1.0),\n",
+       " (('book', 'brick'), 1.6, 1.0),\n",
+       " (('key', 'ruler'), 1.0, 1.2),\n",
+       " (('cabin', 'shield'), 1.0, 1.4),\n",
+       " (('cork', 'knife'), 1.0, 1.8),\n",
+       " (('book', 'house'), 1.2, 1.4),\n",
+       " (('bowl', 'bus'), 1.0, 1.0),\n",
+       " (('cedar', 'deer'), 1.0, 1.0),\n",
+       " (('fork', 'magazine'), 1.0, 1.0),\n",
+       " (('building', 'house'), 4.75, 4.25),\n",
+       " (('armour', 'dog'), 1.0, 1.0),\n",
+       " (('pen', 'tiger'), 1.0, 1.2),\n",
+       " (('church', 'salmon'), 1.0, 1.0),\n",
+       " (('helmet', 'shoes'), 1.0, 1.4),\n",
+       " (('bullet', 'marble'), 2.2, 1.0),\n",
+       " (('bed', 'pin'), 1.0, 1.0),\n",
+       " (('banner', 'pyramid'), 1.0, 1.0),\n",
+       " (('cathedral', 'rocket'), 1.25, 1.0),\n",
+       " (('canary', 'pine'), 1.0, 1.0),\n",
+       " (('pig', 'sword'), 1.0, 1.0),\n",
+       " (('bridge', 'bull'), 1.0, 1.0),\n",
+       " (('goat', 'telephone'), 1.0, 1.0),\n",
+       " (('coat', 'dress'), 3.8, 3.8),\n",
+       " (('penguin', 'rifle'), 1.0, 1.0),\n",
+       " (('cannon', 'cherry'), 1.0, 1.0),\n",
+       " (('chapel', 'sink'), 1.0, 1.0),\n",
+       " (('coat', 'goose'), 1.0, 1.0),\n",
+       " (('beaver', 'penguin'), 1.2, 2.0),\n",
+       " (('elephant', 'stick'), 1.0, 1.0),\n",
+       " (('apple', 'duck'), 1.0, 1.0),\n",
+       " (('lion', 'pig'), 2.0, 2.75),\n",
+       " (('cape', 'house'), 1.0, 1.0),\n",
+       " (('cat', 'sheep'), 2.0, 3.0),\n",
+       " (('cheese', 'pepper'), 1.0, 2.0),\n",
+       " (('bureau', 'hammer'), 1.0, 1.0),\n",
+       " (('doll', 'helicopter'), 1.0, 1.0),\n",
+       " (('drill', 'wheel'), 1.0, 2.25),\n",
+       " (('cannon', 'crow'), 1.0, 1.0),\n",
+       " (('banner', 'table'), 1.0, 1.0),\n",
+       " (('bread', 'rice'), 1.33, 2.67),\n",
+       " (('robin', 'sheep'), 1.0, 2.33),\n",
+       " (('cannon', 'motorcycle'), 1.0, 1.0),\n",
+       " (('python', 'salmon'), 1.33, 2.33),\n",
+       " (('airplane', 'bus'), 2.25, 3.25),\n",
+       " (('boat', 'car'), 2.25, 3.5),\n",
+       " (('fork', 'stone'), 1.0, 1.0),\n",
+       " (('beans', 'mandarin'), 1.25, 2.5),\n",
+       " (('football', 'shoes'), 1.5, 1.25),\n",
+       " (('bridge', 'helmet'), 1.0, 1.0),\n",
+       " (('boat', 'horse'), 1.0, 1.67),\n",
+       " (('banner', 'hook'), 1.0, 1.33),\n",
+       " (('balloon', 'belt'), 1.0, 1.0),\n",
+       " (('cage', 'sparrow'), 1.0, 1.33),\n",
+       " (('car', 'truck'), 3.0, 4.33),\n",
+       " (('magazine', 'plate'), 1.33, 1.0),\n",
+       " (('cat', 'hare'), 2.33, 3.67),\n",
+       " (('balloon', 'drum'), 1.33, 1.0),\n",
+       " (('cup', 'trumpet'), 1.0, 1.0),\n",
+       " (('cage', 'cannon'), 1.0, 1.0),\n",
+       " (('beans', 'hawk'), 1.0, 1.0),\n",
+       " (('gun', 'missile'), 1.0, 4.0),\n",
+       " (('dish', 'stone'), 1.0, 1.0),\n",
+       " (('cow', 'oak'), 1.0, 1.0),\n",
+       " (('airplane', 'bomb'), 1.0, 1.33),\n",
+       " (('cannon', 'stick'), 1.67, 1.0),\n",
+       " (('penguin', 'pig'), 1.67, 2.33),\n",
+       " (('cabinet', 'table'), 1.67, 2.0),\n",
+       " (('cup', 'pot'), 3.33, 3.67),\n",
+       " (('goat', 'whale'), 1.0, 2.33),\n",
+       " (('bike', 'book'), 1.0, 1.0),\n",
+       " (('bowl', 'seal'), 1.0, 1.0),\n",
+       " (('football', 'hawk'), 1.0, 1.0),\n",
+       " (('inn', 'missile'), 1.0, 1.0),\n",
+       " (('ball', 'doll'), 1.0, 2.0),\n",
+       " (('gun', 'pin'), 1.0, 1.0),\n",
+       " (('anchor', 'bottle'), 1.0, 1.0),\n",
+       " (('motorcycle', 'spear'), 1.0, 1.0),\n",
+       " (('airplane', 'donkey'), 1.0, 1.25),\n",
+       " (('ball', 'book'), 1.0, 1.0),\n",
+       " (('corn', 'ruler'), 1.5, 1.0),\n",
+       " (('deer', 'goat'), 3.0, 3.75),\n",
+       " (('balloon', 'rope'), 1.0, 1.0),\n",
+       " (('balloon', 'corn'), 1.0, 1.0),\n",
+       " (('cage', 'motorcycle'), 1.0, 1.0),\n",
+       " (('bomb', 'train'), 1.0, 1.0),\n",
+       " (('plate', 'raven'), 1.0, 1.0),\n",
+       " (('church', 'clock'), 1.33, 1.67),\n",
+       " (('hare', 'whale'), 1.0, 2.33),\n",
+       " (('chain', 'motorcycle'), 1.0, 1.0),\n",
+       " (('bike', 'wheel'), 2.0, 3.25),\n",
+       " (('coat', 'gate'), 1.0, 1.0),\n",
+       " (('guitar', 'helmet'), 1.0, 1.0),\n",
+       " (('drum', 'piano'), 1.25, 3.25),\n",
+       " (('bullet', 'missile'), 3.25, 3.5),\n",
+       " (('anchor', 'robin'), 1.0, 1.0),\n",
+       " (('duck', 'spear'), 1.0, 1.0),\n",
+       " (('bull', 'turkey'), 1.0, 1.75),\n",
+       " (('apple', 'tomato'), 4.25, 3.75),\n",
+       " (('fork', 'robin'), 1.0, 1.0),\n",
+       " (('cedar', 'python'), 1.25, 1.0),\n",
+       " (('chapel', 'jet'), 1.0, 1.25),\n",
+       " (('balloon', 'boots'), 1.33, 1.0),\n",
+       " (('missile', 'spear'), 2.0, 3.0),\n",
+       " (('dish', 'salmon'), 1.33, 1.0),\n",
+       " (('inn', 'submarine'), 1.0, 1.33),\n",
+       " (('bus', 'table'), 1.0, 1.0),\n",
+       " (('jet', 'pin'), 1.0, 1.0),\n",
+       " (('door', 'gate'), 3.67, 4.0),\n",
+       " (('lamb', 'rabbit'), 1.8, 2.6),\n",
+       " (('bridge', 'ship'), 1.2, 1.4),\n",
+       " (('shield', 'whale'), 1.0, 1.0),\n",
+       " (('apartment', 'inn'), 2.8, 3.0),\n",
+       " (('eagle', 'seal'), 1.0, 1.8),\n",
+       " (('hook', 'rope'), 1.5, 1.75),\n",
+       " (('bomb', 'truck'), 1.0, 1.0),\n",
+       " (('pepper', 'tomato'), 2.25, 3.0),\n",
+       " (('beaver', 'hare'), 3.25, 3.25),\n",
+       " (('cedar', 'oak'), 4.5, 4.25),\n",
+       " (('buffalo', 'deer'), 3.25, 3.0),\n",
+       " (('donkey', 'level'), 1.0, 1.0),\n",
+       " (('balloon', 'football'), 2.5, 2.0),\n",
+       " (('rock', 'ruler'), 1.0, 1.0),\n",
+       " (('elephant', 'spear'), 1.0, 1.0),\n",
+       " (('mushroom', 'sparrow'), 1.0, 1.0),\n",
+       " (('knife', 'missile'), 1.6, 2.0),\n",
+       " (('clock', 'pine'), 1.0, 1.0),\n",
+       " (('drum', 'rocket'), 1.0, 1.0),\n",
+       " (('apartment', 'bed'), 1.4, 1.8),\n",
+       " (('bullet', 'rifle'), 1.6, 3.2),\n",
+       " (('chair', 'house'), 1.0, 2.0),\n",
+       " (('salmon', 'sparrow'), 1.0, 1.75),\n",
+       " (('coat', 'motorcycle'), 1.0, 1.5),\n",
+       " (('peach', 'pine'), 1.67, 1.5),\n",
+       " (('box', 'cage'), 3.5, 3.5),\n",
+       " (('level', 'piano'), 1.0, 1.0),\n",
+       " (('boat', 'box'), 2.0, 1.33),\n",
+       " (('boat', 'chair'), 1.0, 1.25),\n",
+       " (('crow', 'rock'), 1.0, 1.0),\n",
+       " (('apartment', 'turkey'), 1.0, 1.0),\n",
+       " (('sink', 'tiger'), 1.0, 1.0),\n",
+       " (('bull', 'cow'), 4.67, 4.0),\n",
+       " (('level', 'rock'), 1.0, 1.0),\n",
+       " (('airplane', 'ship'), 1.33, 3.0),\n",
+       " (('anchor', 'pin'), 1.0, 1.67),\n",
+       " (('eagle', 'whale'), 1.0, 1.8),\n",
+       " (('mirror', 'spider'), 1.0, 1.0),\n",
+       " (('cheese', 'pine'), 1.0, 1.0),\n",
+       " (('level', 'stone'), 1.0, 1.0),\n",
+       " (('football', 'marble'), 1.67, 1.67),\n",
+       " (('cabin', 'train'), 2.0, 1.67),\n",
+       " (('boat', 'truck'), 2.0, 2.75),\n",
+       " (('bread', 'dog'), 1.0, 1.0),\n",
+       " (('knife', 'sword'), 4.0, 3.75),\n",
+       " (('lamb', 'sheep'), 4.75, 4.75),\n",
+       " (('cheese', 'hammer'), 1.0, 1.0),\n",
+       " (('cathedral', 'church'), 4.5, 4.5),\n",
+       " (('bus', 'level'), 1.0, 1.2),\n",
+       " (('stone', 'subway'), 1.0, 1.0),\n",
+       " (('armour', 'helmet'), 2.4, 3.6),\n",
+       " (('mirror', 'sparrow'), 1.0, 1.0),\n",
+       " (('buffalo', 'jet'), 1.0, 1.0),\n",
+       " (('rabbit', 'sparrow'), 1.0, 2.0),\n",
+       " (('cheese', 'orange'), 1.33, 2.33),\n",
+       " (('clock', 'tomato'), 1.0, 1.0),\n",
+       " (('cabinet', 'pepper'), 1.0, 1.0),\n",
+       " (('bomb', 'cape'), 1.0, 1.0),\n",
+       " (('crown', 'ruler'), 1.0, 1.0),\n",
+       " (('doll', 'rope'), 1.0, 1.0),\n",
+       " (('apartment', 'bomb'), 1.0, 1.0),\n",
+       " (('dress', 'tie'), 1.75, 3.25),\n",
+       " (('cage', 'chapel'), 1.5, 1.5),\n",
+       " (('key', 'mouse'), 1.0, 1.0),\n",
+       " (('cabinet', 'chair'), 1.2, 2.0),\n",
+       " (('bridge', 'plate'), 1.2, 1.0),\n",
+       " (('bull', 'hare'), 1.4, 2.2),\n",
+       " (('penguin', 'rice'), 1.0, 1.0),\n",
+       " (('airplane', 'table'), 1.0, 1.0),\n",
+       " (('brick', 'motorcycle'), 1.0, 1.0),\n",
+       " (('python', 'seal'), 1.0, 1.75),\n",
+       " (('bag', 'door'), 1.0, 1.0),\n",
+       " (('pin', 'stick'), 2.0, 1.25),\n",
+       " (('apple', 'tiger'), 1.0, 1.0),\n",
+       " (('cannon', 'python'), 1.75, 1.0),\n",
+       " (('cow', 'goose'), 1.25, 2.0),\n",
+       " (('pig', 'sparrow'), 1.0, 1.8),\n",
+       " (('clock', 'hawk'), 1.0, 1.0),\n",
+       " (('buffalo', 'dog'), 2.0, 2.5),\n",
+       " (('bear', 'duck'), 1.0, 2.0),\n",
+       " (('anchor', 'bowl'), 1.0, 1.0),\n",
+       " (('brick', 'gun'), 1.0, 1.0),\n",
+       " (('cabinet', 'inn'), 1.5, 1.75),\n",
+       " (('chapel', 'lamb'), 1.0, 1.0),\n",
+       " (('bottle', 'cage'), 1.25, 1.5),\n",
+       " (('ruler', 'telephone'), 1.0, 1.0),\n",
+       " (('pyramid', 'whale'), 1.0, 1.0),\n",
+       " (('bowl', 'cage'), 1.33, 1.67),\n",
+       " (('anchor', 'boat'), 1.67, 2.33),\n",
+       " (('cabinet', 'plate'), 1.0, 1.75),\n",
+       " (('bed', 'wheel'), 1.0, 1.0),\n",
+       " (('boat', 'helicopter'), 1.5, 3.25),\n",
+       " (('drill', 'inn'), 1.0, 1.0),\n",
+       " (('buffalo', 'tiger'), 1.67, 2.0),\n",
+       " (('bowl', 'door'), 1.0, 1.0),\n",
+       " (('book', 'cabinet'), 1.0, 1.67),\n",
+       " (('football', 'oak'), 1.0, 1.0),\n",
+       " (('buffalo', 'cabinet'), 1.0, 1.0),\n",
+       " (('bomb', 'car'), 1.0, 1.0),\n",
+       " (('cabin', 'dish'), 1.0, 1.0),\n",
+       " (('apartment', 'pan'), 1.0, 1.0),\n",
+       " (('bull', 'cabin'), 1.0, 1.0),\n",
+       " (('buffalo', 'duck'), 1.0, 2.25),\n",
+       " (('armour', 'ship'), 1.0, 1.25),\n",
+       " (('bridge', 'table'), 1.5, 1.25),\n",
+       " (('level', 'wheel'), 1.0, 1.25),\n",
+       " (('goat', 'sheep'), 4.25, 4.0),\n",
+       " (('boat', 'ship'), 4.5, 4.75),\n",
+       " (('marble', 'piano'), 1.0, 1.25),\n",
+       " (('pepper', 'rice'), 1.25, 2.25),\n",
+       " (('chapel', 'house'), 3.5, 2.75),\n",
+       " (('cheese', 'motorcycle'), 1.0, 1.0),\n",
+       " (('pyramid', 'sword'), 1.0, 1.0),\n",
+       " (('door', 'truck'), 1.25, 1.5),\n",
+       " (('bear', 'fox'), 2.25, 2.5),\n",
+       " (('eagle', 'pen'), 1.0, 1.0),\n",
+       " (('eagle', 'penguin'), 2.0, 2.25),\n",
+       " (('bridge', 'wheel'), 1.0, 1.0),\n",
+       " (('python', 'whale'), 1.0, 2.0),\n",
+       " (('mirror', 'pin'), 1.0, 1.0),\n",
+       " (('coat', 'wall'), 1.0, 1.0),\n",
+       " (('oak', 'pine'), 4.2, 4.6),\n",
+       " (('cat', 'pig'), 2.0, 2.2),\n",
+       " (('bag', 'spear'), 1.0, 1.0),\n",
+       " (('armour', 'buffalo'), 1.0, 1.0),\n",
+       " (('bear', 'seal'), 1.75, 2.75),\n",
+       " (('football', 'spear'), 1.0, 1.5),\n",
+       " (('helmet', 'motorcycle'), 1.0, 2.0),\n",
+       " (('cape', 'tie'), 2.0, 3.25),\n",
+       " (('beaver', 'spider'), 1.0, 2.0),\n",
+       " (('bear', 'eagle'), 1.0, 2.0),\n",
+       " (('lamb', 'ruler'), 1.0, 1.0),\n",
+       " (('level', 'rocket'), 1.0, 1.2),\n",
+       " (('cape', 'coat'), 3.4, 3.8),\n",
+       " (('banner', 'raven'), 1.0, 1.0),\n",
+       " (('car', 'motorcycle'), 2.0, 3.4),\n",
+       " (('canary', 'sword'), 1.0, 1.0),\n",
+       " (('orange', 'peach'), 4.5, 4.0),\n",
+       " (('banner', 'ship'), 1.0, 1.0),\n",
+       " (('cannon', 'pine'), 1.25, 1.0),\n",
+       " (('helmet', 'shield'), 2.75, 3.25),\n",
+       " (('cedar', 'cherry'), 1.75, 2.0),\n",
+       " (('hook', 'ship'), 1.0, 1.0),\n",
+       " (('bullet', 'drill'), 1.25, 1.25),\n",
+       " (('airplane', 'lamp'), 1.0, 1.0),\n",
+       " (('mirror', 'telephone'), 1.0, 1.0),\n",
+       " (('doll', 'gate'), 1.0, 1.0),\n",
+       " (('bullet', 'cage'), 1.0, 1.0),\n",
+       " (('pig', 'stick'), 1.0, 1.0),\n",
+       " (('football', 'missile'), 1.5, 1.5),\n",
+       " (('lamb', 'lamp'), 1.0, 1.0),\n",
+       " (('bike', 'chain'), 1.5, 2.0),\n",
+       " (('cow', 'mushroom'), 1.0, 1.0),\n",
+       " (('clock', 'submarine'), 1.0, 1.0),\n",
+       " (('brick', 'dish'), 1.0, 1.0),\n",
+       " (('apple', 'canary'), 1.0, 1.0),\n",
+       " (('dress', 'tiger'), 1.0, 1.0),\n",
+       " (('bed', 'chair'), 2.25, 3.25),\n",
+       " (('cedar', 'pig'), 1.0, 1.0),\n",
+       " (('bag', 'football'), 1.25, 1.0),\n",
+       " (('boat', 'crown'), 1.0, 1.0),\n",
+       " (('cage', 'truck'), 1.25, 1.0),\n",
+       " (('buffalo', 'cathedral'), 1.0, 1.0),\n",
+       " (('bridge', 'eagle'), 1.0, 1.2),\n",
+       " (('cedar', 'seal'), 1.0, 1.0),\n",
+       " (('inn', 'rice'), 1.0, 1.0),\n",
+       " (('bread', 'corn'), 1.2, 2.6),\n",
+       " (('spear', 'sword'), 3.8, 4.0),\n",
+       " (('level', 'plate'), 1.0, 1.0),\n",
+       " (('bottle', 'cannon'), 1.75, 1.0),\n",
+       " (('banner', 'house'), 1.0, 1.0),\n",
+       " (('cup', 'table'), 1.0, 1.6),\n",
+       " (('helicopter', 'plate'), 1.0, 1.0),\n",
+       " (('football', 'helmet'), 1.2, 2.6),\n",
+       " (('bike', 'horse'), 1.0, 2.0),\n",
+       " (('mirror', 'piano'), 1.0, 1.0),\n",
+       " (('cathedral', 'tomato'), 1.0, 1.0),\n",
+       " (('clock', 'lamp'), 1.0, 1.5),\n",
+       " (('rocket', 'van'), 1.0, 1.25),\n",
+       " (('level', 'train'), 1.0, 1.0),\n",
+       " (('cat', 'chicken'), 1.0, 2.0),\n",
+       " (('apple', 'pepper'), 2.5, 2.75),\n",
+       " (('boots', 'hammer'), 1.0, 1.0),\n",
+       " (('donkey', 'seal'), 1.0, 2.0),\n",
+       " (('chapel', 'church'), 4.75, 5.0),\n",
+       " (('cedar', 'coat'), 1.0, 1.0),\n",
+       " (('bridge', 'house'), 1.2, 1.4),\n",
+       " (('pan', 'sink'), 2.2, 2.0),\n",
+       " (('beaver', 'python'), 1.0, 2.0),\n",
+       " (('key', 'violin'), 1.0, 1.0),\n",
+       " (('book', 'doll'), 1.0, 1.0),\n",
+       " (('hare', 'seal'), 1.5, 2.0),\n",
+       " (('submarine', 'sword'), 1.0, 1.0),\n",
+       " (('canary', 'stick'), 1.0, 1.0),\n",
+       " (('bottle', 'lion'), 1.0, 1.0),\n",
+       " (('cup', 'dish'), 2.75, 3.25),\n",
+       " (('bag', 'boat'), 1.0, 1.0),\n",
+       " (('cape', 'fox'), 1.0, 1.0),\n",
+       " (('cup', 'pan'), 2.4, 2.6),\n",
+       " (('chain', 'clock'), 1.0, 1.0),\n",
+       " (('ball', 'cow'), 1.0, 1.0),\n",
+       " (('bowl', 'pig'), 1.0, 1.0),\n",
+       " (('brick', 'cage'), 1.0, 1.0),\n",
+       " (('cat', 'duck'), 1.2, 2.2),\n",
+       " (('helicopter', 'wheel'), 1.2, 1.2),\n",
+       " (('donkey', 'pine'), 1.0, 1.0),\n",
+       " (('ball', 'cabin'), 1.0, 1.0),\n",
+       " (('bed', 'table'), 1.75, 2.5),\n",
+       " (('church', 'robin'), 1.0, 1.0),\n",
+       " (('helmet', 'rifle'), 1.0, 1.5),\n",
+       " (('bear', 'spider'), 1.0, 2.0),\n",
+       " (('deer', 'oak'), 1.0, 1.0),\n",
+       " (('banner', 'brick'), 1.0, 1.0),\n",
+       " (('cheese', 'tie'), 1.0, 1.0),\n",
+       " (('building', 'ship'), 1.5, 1.75),\n",
+       " (('apartment', 'bureau'), 1.0, 1.5),\n",
+       " (('cow', 'violin'), 1.0, 1.0),\n",
+       " (('church', 'lamp'), 1.0, 1.0),\n",
+       " (('building', 'pin'), 1.0, 1.25),\n",
+       " (('ball', 'hammer'), 1.0, 1.0),\n",
+       " (('bridge', 'building'), 1.2, 1.4),\n",
+       " (('bear', 'belt'), 1.0, 1.0),\n",
+       " (('cork', 'rock'), 1.33, 1.33),\n",
+       " (('belt', 'bullet'), 1.0, 1.33),\n",
+       " (('bag', 'bike'), 1.0, 1.25),\n",
+       " (('mushroom', 'shield'), 1.25, 1.0),\n",
+       " (('clock', 'shoes'), 1.0, 1.25),\n",
+       " (('boat', 'hook'), 1.0, 2.5),\n",
+       " (('book', 'building'), 1.2, 1.2),\n",
+       " (('python', 'spear'), 1.4, 1.0),\n",
+       " (('cherry', 'mushroom'), 1.2, 1.4),\n",
+       " (('apple', 'sword'), 1.0, 1.0),\n",
+       " (('hammer', 'telephone'), 1.0, 1.2),\n",
+       " (('crow', 'raven'), 4.4, 4.6),\n",
+       " (('marble', 'rifle'), 1.0, 1.0),\n",
+       " (('bread', 'brick'), 2.0, 1.0),\n",
+       " (('cage', 'pin'), 1.0, 1.2),\n",
+       " (('goat', 'rabbit'), 1.6, 2.6),\n",
+       " (('bottle', 'pine'), 1.0, 1.0),\n",
+       " (('mirror', 'rice'), 1.0, 1.0),\n",
+       " (('helicopter', 'submarine'), 1.25, 2.0),\n",
+       " (('orange', 'tomato'), 2.5, 3.0),\n",
+       " (('balloon', 'salmon'), 1.0, 1.0),\n",
+       " (('ball', 'shoes'), 1.0, 1.6),\n",
+       " (('apartment', 'gate'), 1.0, 2.2),\n",
+       " (('canary', 'pig'), 1.0, 1.6),\n",
+       " (('bomb', 'cannon'), 1.2, 3.2),\n",
+       " (('subway', 'violin'), 1.0, 1.0),\n",
+       " (('apartment', 'door'), 1.2, 1.8),\n",
+       " (('bridge', 'rock'), 1.0, 1.4),\n",
+       " (('bridge', 'stone'), 1.0, 1.6),\n",
+       " (('inn', 'plate'), 1.0, 1.2),\n",
+       " (('bottle', 'ruler'), 1.0, 1.0),\n",
+       " (('fork', 'pen'), 1.4, 1.2),\n",
+       " (('marble', 'spear'), 1.0, 1.0),\n",
+       " (('gun', 'rifle'), 3.8, 4.6),\n",
+       " (('brick', 'table'), 1.2, 1.2),\n",
+       " (('beaver', 'mouse'), 1.8, 2.0),\n",
+       " (('rope', 'tie'), 2.4, 2.6),\n",
+       " (('bridge', 'gate'), 1.0, 1.6),\n",
+       " (('lamb', 'missile'), 1.0, 1.0),\n",
+       " (('bullet', 'cannon'), 1.2, 3.2),\n",
+       " (('beans', 'cabinet'), 1.0, 1.25),\n",
+       " (('ball', 'pyramid'), 1.0, 1.0),\n",
+       " (('bus', 'cabin'), 1.5, 1.25),\n",
+       " (('chicken', 'duck'), 4.0, 4.0),\n",
+       " (('belt', 'tie'), 1.8, 2.6),\n",
+       " (('fox', 'mouse'), 2.0, 2.0),\n",
+       " (('corn', 'crown'), 1.2, 1.0),\n",
+       " (('bus', 'dish'), 1.0, 1.2),\n",
+       " (('cabinet', 'cork'), 1.2, 1.0),\n",
+       " (('raven', 'violin'), 1.0, 1.0),\n",
+       " (('jet', 'van'), 1.75, 2.75),\n",
+       " (('helmet', 'plate'), 1.25, 1.25),\n",
+       " (('bed', 'cedar'), 1.33, 2.0),\n",
+       " (('chain', 'wheel'), 1.0, 1.75),\n",
+       " (('knife', 'spear'), 3.33, 3.0),\n",
+       " (('duck', 'eagle'), 2.4, 3.2),\n",
+       " (('jet', 'lamp'), 1.0, 1.2),\n",
+       " (('armour', 'car'), 1.2, 1.8),\n",
+       " (('kite', 'piano'), 1.0, 1.0),\n",
+       " (('cathedral', 'sword'), 1.0, 1.2),\n",
+       " (('bread', 'pin'), 1.0, 1.0),\n",
+       " (('missile', 'rifle'), 1.5, 2.6),\n",
+       " (('hammer', 'shoes'), 1.0, 1.0),\n",
+       " (('jet', 'subway'), 2.25, 2.0),\n",
+       " (('inn', 'mirror'), 1.0, 1.4),\n",
+       " (('anchor', 'box'), 1.0, 1.2),\n",
+       " (('rifle', 'rocket'), 1.75, 3.5),\n",
+       " (('bike', 'car'), 2.0, 3.25),\n",
+       " (('beans', 'bread'), 1.25, 2.75),\n",
+       " (('box', 'sheep'), 1.0, 1.25),\n",
+       " (('boots', 'coat'), 1.5, 2.75),\n",
+       " (('cherry', 'peach'), 2.75, 4.0),\n",
+       " (('tie', 'wall'), 1.0, 1.0),\n",
+       " (('church', 'house'), 2.4, 2.0),\n",
+       " (('cape', 'cat'), 1.0, 1.0),\n",
+       " (('anchor', 'truck'), 1.0, 1.0),\n",
+       " (('chain', 'gate'), 1.2, 2.0),\n",
+       " (('key', 'rifle'), 1.0, 1.2),\n",
+       " (('radio', 'telephone'), 1.2, 2.2),\n",
+       " (('banner', 'box'), 1.0, 1.25),\n",
+       " (('clock', 'key'), 1.25, 1.25),\n",
+       " (('kite', 'telephone'), 1.25, 1.0),\n",
+       " (('chair', 'crow'), 1.0, 1.0),\n",
+       " (('motorcycle', 'wheel'), 1.8, 2.4),\n",
+       " (('knife', 'shield'), 1.0, 1.8),\n",
+       " (('church', 'goat'), 1.0, 1.0),\n",
+       " (('bottle', 'fox'), 1.0, 1.0),\n",
+       " (('football', 'turkey'), 1.2, 1.2),\n",
+       " (('guitar', 'violin'), 3.2, 3.6),\n",
+       " (('ball', 'boots'), 1.0, 1.2),\n",
+       " (('chapel', 'door'), 1.2, 2.0),\n",
+       " (('doll', 'pepper'), 1.0, 1.0),\n",
+       " (('level', 'submarine'), 1.2, 1.0),\n",
+       " (('armour', 'bus'), 1.0, 1.0),\n",
+       " (('pin', 'wheel'), 1.0, 1.6),\n",
+       " (('lamp', 'van'), 1.0, 1.2),\n",
+       " (('level', 'rice'), 1.0, 1.0),\n",
+       " (('eagle', 'sparrow'), 2.8, 3.8),\n",
+       " (('cedar', 'salmon'), 1.0, 1.2),\n",
+       " (('anchor', 'donkey'), 1.0, 1.0),\n",
+       " (('plate', 'telephone'), 1.0, 1.2),\n",
+       " (('bear', 'buffalo'), 2.75, 2.75),\n",
+       " (('cork', 'van'), 1.0, 1.0),\n",
+       " (('donkey', 'rock'), 1.25, 1.25),\n",
+       " (('inn', 'marble'), 1.0, 1.25),\n",
+       " (('airplane', 'helicopter'), 2.75, 3.5),\n",
+       " (('guitar', 'piano'), 1.25, 3.5),\n",
+       " (('beans', 'fork'), 1.0, 1.6),\n",
+       " (('banner', 'gate'), 1.0, 1.6),\n",
+       " (('bike', 'door'), 1.0, 1.2),\n",
+       " (('bed', 'python'), 1.0, 1.0),\n",
+       " (('drum', 'stick'), 1.2, 3.0),\n",
+       " (('elephant', 'raven'), 1.0, 1.6),\n",
+       " (('donkey', 'hare'), 1.2, 1.6),\n",
+       " (('apartment', 'car'), 1.0, 1.2),\n",
+       " (('kite', 'ruler'), 1.0, 1.25),\n",
+       " (('chapel', 'cup'), 1.0, 1.5),\n",
+       " (('church', 'fork'), 1.0, 1.0),\n",
+       " (('boots', 'jet'), 1.0, 1.2),\n",
+       " (('box', 'train'), 2.0, 1.8),\n",
+       " (('airplane', 'boat'), 1.2, 2.2),\n",
+       " (('cork', 'door'), 1.0, 1.2),\n",
+       " (('balloon', 'box'), 1.0, 1.25),\n",
+       " (('bowl', 'shoes'), 1.25, 1.5),\n",
+       " (('inn', 'turkey'), 1.0, 1.0),\n",
+       " (('lion', 'tiger'), 3.25, 4.25),\n",
+       " (('bag', 'truck'), 1.0, 1.0),\n",
+       " (('cannon', 'shield'), 1.0, 1.8),\n",
+       " (('boots', 'shoes'), 3.8, 4.4),\n",
+       " (('apple', 'peach'), 3.0, 3.8),\n",
+       " (('guitar', 'level'), 1.0, 1.0),\n",
+       " (('bus', 'car'), 2.6, 4.2),\n",
+       " (('box', 'house'), 1.4, 1.6),\n",
+       " (('dog', 'salmon'), 1.0, 1.4),\n",
+       " (('brick', 'doll'), 1.0, 1.0),\n",
+       " (('jet', 'rocket'), 3.0, 3.6),\n",
+       " (('apple', 'elephant'), 1.0, 1.0),\n",
+       " (('cherry', 'mouse'), 1.0, 1.4),\n",
+       " (('box', 'chair'), 1.5, 1.4),\n",
+       " (('doll', 'table'), 1.0, 1.4),\n",
+       " (('cage', 'gun'), 1.0, 1.2),\n",
+       " (('cathedral', 'chapel'), 4.0, 4.0),\n",
+       " (('airplane', 'key'), 1.0, 1.0),\n",
+       " (('apple', 'mandarin'), 1.8, 3.2),\n",
+       " (('ruler', 'submarine'), 1.0, 1.0),\n",
+       " (('magazine', 'mouse'), 1.0, 1.0),\n",
+       " (('crown', 'dress'), 1.0, 1.4),\n",
+       " (('gun', 'penguin'), 1.0, 1.0),\n",
+       " (('chapel', 'kite'), 1.2, 1.0),\n",
+       " (('bread', 'mandarin'), 1.0, 1.8),\n",
+       " (('airplane', 'jet'), 5.0, 5.0),\n",
+       " (('armour', 'lamp'), 1.0, 1.4),\n",
+       " (('helicopter', 'rock'), 1.0, 1.0),\n",
+       " (('beans', 'goose'), 1.0, 1.0),\n",
+       " (('bike', 'motorcycle'), 4.0, 3.75),\n",
+       " (('bullet', 'shoes'), 1.0, 1.0),\n",
+       " (('ball', 'pin'), 1.0, 1.0),\n",
+       " (('helicopter', 'stone'), 1.0, 1.0),\n",
+       " (('knife', 'rifle'), 1.4, 2.6),\n",
+       " (('bowl', 'cup'), 3.2, 3.8),\n",
+       " (('cathedral', 'wall'), 2.2, 2.4),\n",
+       " (('bomb', 'rocket'), 2.6, 3.4),\n",
+       " (('apartment', 'cabinet'), 1.8, 2.6),\n",
+       " (('canary', 'drum'), 1.0, 1.0),\n",
+       " (('rope', 'shoes'), 1.25, 1.0),\n",
+       " (('brick', 'pine'), 1.0, 1.0),\n",
+       " (('cabin', 'house'), 4.0, 4.25),\n",
+       " (('fork', 'pan'), 1.0, 2.0),\n",
+       " (('cheese', 'robin'), 1.0, 1.0),\n",
+       " (('mandarin', 'orange'), 4.0, 4.6),\n",
+       " (('cow', 'pine'), 1.0, 1.2),\n",
+       " (('brick', 'oak'), 1.0, 1.0),\n",
+       " (('cat', 'dog'), 2.8, 3.6),\n",
+       " (('rock', 'turkey'), 1.0, 1.0),\n",
+       " (('plate', 'pot'), 1.6, 2.4),\n",
+       " (('pig', 'sheep'), 2.5, 3.2),\n",
+       " (('drill', 'level'), 1.0, 2.0),\n",
+       " (('dish', 'duck'), 1.5, 1.8),\n",
+       " (('beaver', 'seal'), 2.5, 2.2),\n",
+       " (('cannon', 'gun'), 1.25, 2.0),\n",
+       " (('dog', 'kite'), 1.0, 1.0),\n",
+       " (('bread', 'dish'), 1.8, 3.0),\n",
+       " (('cape', 'rabbit'), 1.0, 1.0),\n",
+       " (('goat', 'mouse'), 1.2, 1.8),\n",
+       " (('helicopter', 'level'), 1.0, 1.2),\n",
+       " (('book', 'clock'), 1.2, 1.2),\n",
+       " (('beans', 'table'), 1.0, 1.2),\n",
+       " (('armour', 'door'), 1.2, 1.2),\n",
+       " (('canary', 'lamb'), 1.0, 1.2),\n",
+       " (('donkey', 'fox'), 1.2, 1.4),\n",
+       " (('hare', 'spider'), 1.0, 1.0),\n",
+       " (('mandarin', 'robin'), 1.2, 1.2),\n",
+       " (('bureau', 'cabinet'), 3.0, 3.0),\n",
+       " (('bomb', 'helmet'), 1.2, 1.4),\n",
+       " (('anchor', 'ship'), 1.0, 3.6),\n",
+       " (('corn', 'cow'), 1.0, 1.4),\n",
+       " (('ball', 'spear'), 1.0, 1.2),\n",
+       " (('guitar', 'telephone'), 1.2, 1.2),\n",
+       " (('armour', 'bomb'), 1.0, 1.6),\n",
+       " (('crown', 'sink'), 1.0, 1.0),\n",
+       " (('cork', 'inn'), 1.0, 1.0),\n",
+       " (('penguin', 'subway'), 1.0, 1.0),\n",
+       " (('bull', 'oak'), 1.0, 1.0),\n",
+       " (('drill', 'helicopter'), 1.25, 1.75),\n",
+       " (('chain', 'goat'), 1.0, 1.25),\n",
+       " (('banner', 'bed'), 1.5, 1.25),\n",
+       " (('book', 'ship'), 1.0, 1.0),\n",
+       " (('box', 'church'), 1.4, 1.2),\n",
+       " (('bed', 'tie'), 1.0, 1.0),\n",
+       " (('goose', 'lion'), 1.0, 1.6),\n",
+       " (('bull', 'goat'), 2.0, 2.8),\n",
+       " (('magazine', 'stone'), 1.0, 1.0),\n",
+       " (('boat', 'gate'), 1.0, 1.2),\n",
+       " (('plate', 'tiger'), 1.0, 1.0),\n",
+       " (('bed', 'bike'), 1.0, 1.2),\n",
+       " (('church', 'shoes'), 1.0, 1.0),\n",
+       " (('doll', 'pyramid'), 1.0, 1.0),\n",
+       " (('chicken', 'robin'), 1.8, 2.8),\n",
+       " (('bomb', 'knife'), 1.0, 1.2),\n",
+       " (('subway', 'van'), 1.8, 1.8),\n",
+       " (('dress', 'sheep'), 1.0, 1.0),\n",
+       " (('bag', 'coat'), 1.67, 1.67),\n",
+       " (('raven', 'trumpet'), 1.0, 1.0),\n",
+       " (('piano', 'rock'), 1.0, 1.0),\n",
+       " (('brick', 'corn'), 1.0, 1.0),\n",
+       " (('crown', 'rabbit'), 1.0, 1.0),\n",
+       " (('building', 'cabin'), 2.75, 3.5),\n",
+       " (('anchor', 'gun'), 1.0, 1.0),\n",
+       " (('bridge', 'pin'), 1.0, 1.2),\n",
+       " (('armour', 'shield'), 3.25, 3.8),\n",
+       " (('bed', 'bread'), 1.0, 1.0),\n",
+       " (('chapel', 'corn'), 1.0, 1.0),\n",
+       " (('donkey', 'goose'), 1.2, 1.8),\n",
+       " (('rock', 'stone'), 3.8, 4.0),\n",
+       " (('bureau', 'jet'), 1.0, 1.0),\n",
+       " (('book', 'dog'), 1.0, 1.0),\n",
+       " (('boat', 'building'), 1.0, 1.6),\n",
+       " (('pan', 'rocket'), 1.0, 1.0),\n",
+       " (('cheese', 'dish'), 1.4, 2.4),\n",
+       " (('kite', 'motorcycle'), 1.0, 1.0),\n",
+       " (('armour', 'bike'), 1.0, 1.25),\n",
+       " (('clock', 'rope'), 1.0, 1.0),\n",
+       " (('box', 'cat'), 1.0, 1.0),\n",
+       " (('dog', 'missile'), 1.0, 1.0),\n",
+       " (('bridge', 'shoes'), 1.0, 1.0),\n",
+       " (('armour', 'truck'), 1.2, 1.2),\n",
+       " (('church', 'crow'), 1.0, 1.0),\n",
+       " (('bag', 'balloon'), 1.2, 1.4),\n",
+       " (('goose', 'python'), 1.0, 1.4),\n",
+       " (('bomb', 'gun'), 1.0, 3.2),\n",
+       " (('mirror', 'raven'), 1.0, 1.0),\n",
+       " (('bomb', 'marble'), 1.0, 1.25),\n",
+       " (('goose', 'penguin'), 1.75, 3.25),\n",
+       " (('level', 'missile'), 1.5, 1.25),\n",
+       " (('mushroom', 'tomato'), 1.5, 2.25),\n",
+       " (('gate', 'goat'), 1.0, 1.0),\n",
+       " (('chain', 'helmet'), 1.0, 1.0),\n",
+       " (('belt', 'truck'), 1.0, 1.0),\n",
+       " (('mirror', 'tie'), 1.0, 1.25),\n",
+       " (('cape', 'dress'), 3.0, 2.8),\n",
+       " (('buffalo', 'oak'), 1.0, 1.0),\n",
+       " (('drum', 'key'), 1.0, 1.2),\n",
+       " (('eagle', 'spider'), 1.0, 1.0),\n",
+       " (('dish', 'rice'), 1.5, 2.6),\n",
+       " (('buffalo', 'train'), 1.0, 1.0),\n",
+       " (('corn', 'peach'), 1.0, 1.2),\n",
+       " (('jet', 'missile'), 1.75, 2.8),\n",
+       " (('level', 'pan'), 1.2, 1.2),\n",
+       " (('airplane', 'car'), 1.2, 2.0),\n",
+       " (('bottle', 'goose'), 1.0, 1.0),\n",
+       " (('anchor', 'hook'), 2.6, 2.2),\n",
+       " (('deer', 'duck'), 1.2, 1.4),\n",
+       " (('horse', 'kite'), 1.0, 1.0),\n",
+       " (('cannon', 'rice'), 1.0, 1.0),\n",
+       " (('cedar', 'marble'), 1.0, 1.2),\n",
+       " (('cat', 'fox'), 2.5, 2.75),\n",
+       " (('gate', 'ship'), 1.0, 1.0),\n",
+       " (('bag', 'table'), 1.0, 1.0),\n",
+       " (('cup', 'oak'), 1.0, 1.0),\n",
+       " (('marble', 'missile'), 1.0, 1.0),\n",
+       " (('cabinet', 'house'), 1.67, 2.4),\n",
+       " (('bureau', 'cannon'), 1.0, 1.0),\n",
+       " (('church', 'inn'), 1.4, 1.2),\n",
+       " (('bag', 'pyramid'), 1.0, 1.0),\n",
+       " (('drum', 'hammer'), 1.0, 1.0),\n",
+       " (('cage', 'door'), 2.2, 2.8)]"
+      ]
+     },
+     "execution_count": 8,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "word_pairs = []  # test suit word pairs\n",
+    "semantic_similarity = []\n",
+    "visual_similarity = []\n",
+    "test_vocab = set()\n",
+    "\n",
+    "for index, line in enumerate(open('similarity_judgements.txt')):\n",
+    "    data = line.strip().split('\\t')\n",
+    "    if index > 0 and len(data) == 3:\n",
+    "        w1, w2 = tuple(data[0].split('#'))\n",
+    "        # it will check if both words from each pair exist in the word matrix.\n",
+    "        if w1 in ktw_10k and w2 in ktw_10k:\n",
+    "            word_pairs.append((w1, w2))\n",
+    "            test_vocab.update([w1, w2])\n",
+    "            semantic_similarity.append(float(data[1]))\n",
+    "            visual_similarity.append(float(data[2]))\n",
+    "\n",
+    "print('number of available words to test:', len(test_vocab - (test_vocab - set(ktw))))\n",
+    "print('number of available word pairs to test:', len(word_pairs))\n",
+    "list(zip(word_pairs, visual_similarity, semantic_similarity))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Now we are going to test how the cosine similarity between vectors of each of the three spaces (normal space, ppmi, svd) compares with the human similarity judgements for the words in the similarity dataset. Which of the three spaces best approximates human judgements?\n",
+    "\n",
+    "For comparison of several scores, we can use [Spearman correlation coefficient](https://en.wikipedia.org/wiki/Spearman's_rank_correlation_coefficient) which is implemented in `scipy.stats.spearmanr` [here](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html). The values of the Sperman correlation coefficient range from -1, 0 to 1, where 0 indicates no correlation, 1 perfect correaltion and -1 negative correlation. Hence, the greater the number the better the similarity scores align. The p values tells us if the coefficient is statistically significant. For this to be the case, it must be less than or equal to $< 0.05$.\n",
+    "\n",
+    "Here is how you can calculate Pearson's correlation coefficient betweeen the scores of visual similarity and semantic similarity of the available words in the test suite:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Visual Similarity vs. Semantic Similarity:\n",
+      "rho     = 0.7122\n",
+      "p-value = 0.0000\n"
+     ]
+    }
+   ],
+   "source": [
+    "from scipy import stats\n",
+    "\n",
+    "rho, pval = stats.spearmanr(semantic_similarity, visual_similarity)\n",
+    "print(\"\"\"Visual Similarity vs. Semantic Similarity:\n",
+    "rho     = {:.4f}\n",
+    "p-value = {:.4f}\"\"\".format(rho, pval))\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Let's now calculate the cosine similarity scores of all word pairs in an ordered list using all three matrices. **[6 marks]**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "raw_similarities = [cosine(w1, w2, space_10k) for w1, w2 in word_pairs]\n",
+    "ppmi_similarities = [cosine(w1, w2, ppmispace_10k) for w1, w2 in word_pairs]\n",
+    "svd_similarities = [cosine(w1, w2, svdspace_10k) for w1, w2 in word_pairs]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Now, calculate correlation coefficients between lists of similarity scores and the real semantic similarity scores from the experiment. The scores of what model best correlates them? Is this expected? **[6 marks]**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "simdict = {\"raw\": raw_similarities, \"ppmi\": ppmi_similarities, \"svd\": svd_similarities}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Original similarity and raw similarity\n",
+      "Rho: 0.152236\n",
+      "P-value: 0.000021\n",
+      "\n",
+      "Original similarity and ppmi similarity\n",
+      "Rho: 0.454744\n",
+      "P-value: 0.000000\n",
+      "\n",
+      "Original similarity and svd similarity\n",
+      "Rho: 0.423221\n",
+      "P-value: 0.000000\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "for name, sims in simdict.items():\n",
+    "    rho, pval = stats.spearmanr(semantic_similarity, sims)\n",
+    "    print(f\"\"\"Original similarity and {name} similarity\n",
+    "Rho: {rho:4f}\n",
+    "P-value: {pval:4f}\n",
+    "\"\"\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "**Your answer should go here:**\n",
+    "\n",
+    "With consulting Jurafsky and Martin's 'Speech and Language Processing', we could conclude that raw frequency is less effective than ppmi, because raw frequency is not discriminative enough, since it doens't discount words such as 'it', 'they', 'the', which are not very informative, whilst ppmi helps show those situations with informative co-occurrence."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We can also calculate correlation coefficients between lists of cosine similarity scores and the real visual similarity scores from the experiment. Which similarity model best correlates with them? How do the correlation coefficients compare with those from the previous comparison - and can you speculate why do we get such results? **[7 marks]**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Visual similarity and raw similarity\n",
+      "Rho: 0.121179\n",
+      "P-value: 0.000729\n",
+      "\n",
+      "Visual similarity and ppmi similarity\n",
+      "Rho: 0.383771\n",
+      "P-value: 0.000000\n",
+      "\n",
+      "Visual similarity and svd similarity\n",
+      "Rho: 0.309655\n",
+      "P-value: 0.000000\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "for name, sims in simdict.items():\n",
+    "    rho, pval = stats.spearmanr(visual_similarity, sims)\n",
+    "    print(f\"\"\"Visual similarity and {name} similarity\n",
+    "Rho: {rho:4f}\n",
+    "P-value: {pval:4f}\n",
+    "\"\"\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "**Your answer should go here:**\n",
+    "\n",
+    "The scores go from best to worst (PPMI, SVD, raw) in the same way as above, although in this case they are overall lower. There has been a bit said about this at last week’s lab, about the way in which a pair of words can either have a low semantic similarity score and low visual similarity score, or the other way around. The other group mentioned how, in the case of low visual similarity and high semantic similarity, this might be due to the fact that people are more “lenient” when it comes to finding semantic similarity, but more scrutinizing in the case of visual similarity (lion and cat might score high for semantic similarity, since they are both felines, but might score lower visually, because when you are put in front of two “items” from the same category, you will notice their differences and what gives them an individual look). However, this discussion was centered heavily around human perception. I would argue that there would be a large amount of cases in which the scores would present themselves in the other way around, simply because an AI would see two “similar” images in terms of colour, shape, size, positioning, shading etc, but would not be able to distinguish the actual “representation” of what it sees, thus deeming the two highly similar. A good example for this would be an image of the sun, next to an image of a peach."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## 4. Operations on similarities"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We can perform mathematical operations on vectors to derive meaning predictions.\n",
+    "\n",
+    "For example, we can perform `king - man` and add the resulting vector to `woman` and we hope to get the vector for `queen`. Also, what would be the result of `stockholm - sweden + denmark`? Why? **[3 marks]**\n",
+    "\n",
+    "If you want to learn more about vector differences between words (and words in analogy relations), check [this paper](https://aclanthology.org/P16-1158.pdf)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "**Your answer should go here:**\n",
+    "\n",
+    "Copenhagen, because stockholm is a capital city, and if we subtract the country which determines the capital, and \"add\" another country, then the answer would be the corresponding capital city for that country"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Here is some helpful code that allows us to calculate such comparisons."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "from scipy.spatial import distance\n",
+    "\n",
+    "\n",
+    "def normalize(vec):\n",
+    "    return vec / veclen(vec)\n",
+    "\n",
+    "\n",
+    "def find_similar_to(vec1, space):\n",
+    "    # vector similarity funciton\n",
+    "    #sim_fn = lambda a, b: 1-distance.euclidean(normalize(a), normalize(b))\n",
+    "    #sim_fn = lambda a, b: 1-distance.correlation(a, b)\n",
+    "    #sim_fn = lambda a, b: 1-distance.cityblock(normalize(a), normalize(b))\n",
+    "    #sim_fn = lambda a, b: 1-distance.chebyshev(normalize(a), normalize(b))\n",
+    "    #sim_fn = lambda a, b: np.dot(normalize(a), normalize(b))\n",
+    "    sim_fn = lambda a, b: 1 - distance.cosine(a, b)\n",
+    "\n",
+    "    sims = [\n",
+    "        (word2, sim_fn(vec1, space[word2]))\n",
+    "        for word2 in space.keys()\n",
+    "    ]\n",
+    "    return sorted(sims, key=lambda p: p[1], reverse=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Here is how you apply this code. Comment on the results you get. **[3 marks]**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[('long', 0.8733111261346901),\n",
+       " ('above', 0.8259671977311955),\n",
+       " ('around', 0.8030776291120685),\n",
+       " ('sun', 0.7692439111243973),\n",
+       " ('just', 0.7678481974778111),\n",
+       " ('wide', 0.767257431992253),\n",
+       " ('each', 0.7665960260861158),\n",
+       " ('circle', 0.7647746702909336),\n",
+       " ('length', 0.7601066921319761),\n",
+       " ('almost', 0.7542351860536628)]"
+      ]
+     },
+     "execution_count": 15,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "short = normalize(svdspace_10k['short'])\n",
+    "light = normalize(svdspace_10k['light'])\n",
+    "long = normalize(svdspace_10k['long'])\n",
+    "heavy = normalize(svdspace_10k['heavy'])\n",
+    "\n",
+    "find_similar_to(light - (heavy - long), svdspace_10k)[:10]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "**Your answer should go here:**\n",
+    "\n",
+    "It seems like in the light - (heavy - long) equation, the results at the top of the list should be words whose value are closest to heavy - long (which we thought would be wide), and then subtract light from wide, which would give various results, depending on how the sense of 'light' is interpreted (not dark or not heavy). 'Long' being at the top of the list was surprising, since it is subtracted originally. 'above' and 'around' seem unclear, but then we have 'sun', which makes sense, considering that the sun could be described as being heavy and wide, and then the above words make sense as well, in connection with sun."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Find 5 similar pairs of pairs of words and test them. Hint: Google for `word analogies examples`. You can also construct analogies that are less lexical but more grammatical, e.g. `see, saw, leave, ?` or analogies that are based on world knowledge as in the [Google analogy dataset](http://download.tensorflow.org/data/questions-words.txt) from [3]. Does the resulting vector similarity confirm your expectations? But remember you can only do this if the words are contained in our vector space with 10,000 dimensions. **[10 marks]**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[('census2', 0.10841408026301902),\n",
+       " ('susquehanna', 0.06846910991214805),\n",
+       " ('cambria', 0.06005636859121455),\n",
+       " ('presbyterian', 0.05958665621532133),\n",
+       " ('seminary', 0.05743497102845396)]"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "black = normalize(svdspace_10k['black'])\n",
+    "white = normalize(svdspace_10k['white'])\n",
+    "pretty = normalize(svdspace_10k['pretty'])\n",
+    "beautiful = normalize(svdspace_10k['beautiful'])\n",
+    "leave = normalize(svdspace_10k['leave'])\n",
+    "left = normalize(svdspace_10k['left'])\n",
+    "here = normalize(svdspace_10k['here'])\n",
+    "there = normalize(svdspace_10k['food'])\n",
+    "love = normalize(svdspace_10k['love'])\n",
+    "like = normalize(svdspace_10k['like'])\n",
+    "\n",
+    "find_similar_to(beautiful - (pretty + like), svdspace_10k)[:5]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "The results were pretty unexpected mostly, as we couldn't see the relevance between the given 'equation' and the words in the output most of the times. The above output we think is a pretty good example."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## 5. Semantic composition and phrase similarity **[20 marks]**\n",
+    "\n",
+    "In this task, we are going to look at how different semantic composition models, introduced in [2] correlate with human judgements. The file with the dataset `mitchell_lapata_acl08.txt` is included with this notebook (we also used it in the class).\n",
+    "\n",
+    "---\n",
+    "\n",
+    "Explanation of the task from Discord channel:\n",
+    "\n",
+    "**What are we trying to achieve?**  \n",
+    "We want to create models, which can automatically capture differences between meaning of different phrases. These models should also be as good as we are (humans) in this task. Check example (1) from Mitchell/Lapata paper, it has two sentences which share the same words, but their meaning is completely different. We as humans can clearly see this difference, but how could a machine capture it?\n",
+    "\n",
+    "It is intuitive that in order to get a meaning of a phrase, we might combine meaning of individual words in this phrase somehow, but how? First, we represent each word with the frequency vector based on the semantic space that we built before (e.g, frequency space, ppmi space, svd space). In other words, each word's meaning is represented by the number of times other words occur in the context, defined by window size. Now, we have a vector for `discussion` and a vector for `thrive`.\n",
+    "\n",
+    "_How do we combine these vectors to get a single vector for the phrase `discussion thrive`?_\n",
+    "\n",
+    "Such methods of combining meaning vectors into a single item are called _semantic composition methods_ (literally, because we compose semantic meaning of the phrase from its individuals). During the lecture, we tried different semantic composition methods: additive, multiplicative, combined.\n",
+    "\n",
+    "Let's say we multiplied the vectors (went with the multiplicative method) and now we have one vector for our phrase.\n",
+    "\n",
+    "Remember, we want to have a model that captures differences between the phrases; it means that if `discussion thrive` is our reference phrase, we need to have a different phrase (high or low similarity phrase) to compare it against the reference one. How do we get this other phrase? Well, this other phrase can be either very similar to the reference or not similar at all, right? Let's say we decided to go with the second option and made/constructed a phrase `discussion digress`, which we know is very dissimilar to the reference phrase. We label this pair of phrases as having a low similarity, e.g., `low` in `hilo`. We can also create a different phrase (e.g., `discussion develop`) and use it as a high similarity phrase when paired with our reference phrase, right? This then would be labeled as `high` in `hilo`. This is what `hilo` in the dataset stands for: known information about how similar the reference phrase and the landmark phrase are.\n",
+    "\n",
+    "Now, our main task is to automatically learn the similarities/differences between our reference and our landmark, right? We take the first pair: `discussion thrive` vs. `discussion digress`. We have a vector representation for each of these phrases.\n",
+    "\n",
+    "**How do we compare two vectors?**\n",
+    "\n",
+    "We use cosine similarity to calculate a single score that would tell us about the similarity between these two vectors. The bigger the cosine, the more similar two vectors are. Cosine ranges from 0 to 1 (0 is very low similarity, 1 is very high similarity). Let's say, we get a cosine of 0.89, it means that according to the multiplicative model (remember, we decided to use multiplicative semantic composition method), these phrases are very similar (cosine is quite high). But wait a second, we know that these two phrases should be of low similarity, right? Because this is what the value in `hilo` tells us about this pair - `discussion thrive` and `discussion digress` are not similar to each other. Clearly, our multiplicative method fails to capture it.\n",
+    "\n",
+    "**What can we do to improve our model?**\n",
+    "\n",
+    "We can try a different composition method to get a phrase vector from phrase's words: let's replace multiplication with addition. Or we can also use combined method. Let's say we used combined method and run cosine again; this time it tells that the cosine score is 0.45. Ok, this seems to be quite low, and it also agrees with our knowledge that these phrases are indeed not similar.\n",
+    "\n",
+    "---\n",
+    "\n",
+    "In other words, we need to evaluate different composition models (additive, multiplicative, combined) and analyse how well they perform. **How do we analyse their performance?** Because we have the ground-truth for comparison (`hilo` values), we know whether our phrases are actually similar or not. We want our cosine score to reflect this knowledge: if the score is high, but the groun-truth hilo is low, then we have a problem in the model - it did not learn things well, we need to replace the composition function.\n",
+    "\n",
+    "---\n",
+    "\n",
+    "_Long story short_: `hilo` is something that we compare our cosine to. `hilo` contains correct answers about similarity between phrases, and cosine should agree with this. If reference-landmark pair are `high` in `hilo`, then cosine should be high enough to reflect that. If cosine is not high in this case, then we look at our model and change the composition function. We need to find the function, which give us cosines that are super close to the ground-truth known `hilo` values."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "<img src=\"res.png\" alt=\"drawing\" width=\"500\"/>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "Next, we want to compute do we compute correlation between our model's predictions and the ground-truth, something similar to the results from [2] (image above):\n",
+    "\n",
+    "---\n",
+    "\n",
+    "In `High` and `Low` columns we have mean cosine values.\n",
+    "These are calculated by averaging cosine scores for all pairs of phrases per model.\n",
+    "Rows introduce different models: `add` is additive, `multiply` is multiplicative, etc. (these are all described in the paper). `NonComp` is a baseline model, the most \"stupid\" one, it should be the worst. `UpperBound` is how humans performed in this task (they were asked to rate similarity between pairs of phrases, 1 is the lowest, 7 is the highest). Why these numbers are in a different scale, not from 0 to 1 like cosine, but from 1 to 7? Because they are not normalised, and authors explicitly said that they are interested in relative differences.\n",
+    "\n",
+    "We need models which are closer to human ratings. `Add` model has 0.59 mean for `High` and 0.59 for `Low`, so it did not learn to differentiate between high similarity pairs and low similarity ones. This is a bad model then, we need a better one. `WeightAdd` seems to be doing better, the difference between `High` and `Low` is now 0.01, but it's also quite bad - the difference is not that obvious. The best models are `Multiply` and `Combined`, because their mean cosines for `High` and `Low` are quite different from each other. We can see that these two models gave higher cosines for high similarity pairs (0.42 and 0.38), while giving lower cosines for low similarity pairs (0.28 and 0.28). And this is a good result - it shows that these two composition functions are so far the best in (i) giving high cosine go highly similar pairs and low cosine to very dissimilar pairs, and (ii) keeping the distance (range) between high and low cosines quite large.\n",
+    "\n",
+    "**However, we can't say how far/close they are when compared to human performance (UpperBound) since human scores are not normalised.**\n",
+    "\n",
+    "Still, we want to choose a model which is the closest to humans. This is why we want to run **the correlation test.**\n",
+    "\n",
+    "How do we perform the correlation test? We need to see how well *each model* correlates with human judgements. So for each model, we would have a vector of cosine values this model gives for each pair that we have. For example, let's say we have three pairs of phrases and our cosine values from additive model are the following ones: `[0.89, 0.40, 0.70]`. Now we need to get a vector of the same size, but for human scores. What do we have for human scores? We have multiple participants, which means that a single phrase can be evaluated by multiple participants. Let's say, the first phrase has scores from two participants (`6, 7`), so what we would do is that we would average it to have a single number (`(6 + 7) / 2 = 6.5`). With this, we can get a mean vector of human scores per item: `[6.5, 3, 6]`.\n",
+    "\n",
+    "Now, we have two vectors and we can run Spearman correlation on these vectors. This is what exactly what the third column in the Results table is showing (the correlation value). There is also a p-value (denoted right below the table)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "**What is your ultimate task in this part of the assignment?**\n",
+    "\n",
+    "(i) Process the dataset and extract `reference - landmark` pairs; you can use the code from the lecture as something to start with. Try to keep information about human rating (`input`) and high/low similarity (`hilo`), because you will need it for correlation tests. Also, you might want to keep the information about participant id (will be useful for getting average numbers for correlation tests). Which format you should use to keep all this data? It's up to you, but a dictionary-like format could be a good choice.\n",
+    "\n",
+    "(ii) Build models of semantic phrase composition: in the lecture we introduced simple additive, simple multiplicative and combined models (details are in [2]). Your task is to take a single pair of phrases, and compute the composition of its vectors using each of these functions. Thus, you will have (at least) three compositional models that take each `noun - verb` phrase from the pair (these phrases can be either references or landmarks) and output a single vector, representing the meaning of this phrase. As your semantic space, you can use pretrained spaces (standard space, ppmi or svd) introduced above. It is up to you which space you use, but for someone who runs your code, it should be pretty straightforward to switch between them.\n",
+    "\n",
+    "(iii) calculate Spearman correlation between each model's predictions and human judgements; you should have something similar to the scores that are shown in the paper."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "**Thoughts process behind calculating the correlation:**\n",
+    "\n",
+    "Let's look at the example pair: reference `child chatter` and high-level similarity landmark (as the last word in the row indicates) `child gabble`. Let's say we have 3 humans evaluating the similarity between these two phrases and we combine their scores into a single vector: `[5, 6, 5]`. We need to average them to get our human vector for correlation: `[5.3]`.\n",
+    "\n",
+    "Our A model's output:  \n",
+    "`cosine(p1, p2) = 0.88`, where p1 is the result of addition of word vectors in the reference phrase `child gabble`, and p2 is the result of addition of word vectors in the high-level similarity phrase `child chatter`.  \n",
+    "\n",
+    "Therefore, we have human rating vector `[5.3]` and model A output `[0.88]`. Next is to compute correlation between these two vectors. This should give you a correlation value and p-value for the model of choice and human ratings.\n",
+    "\n",
+    "Of course, your human rating vectors will be longer (e.g., [6, 7, 3, 4, 5]). Each of your models (A, B, C) will produce a single vector of cosine similarity between these same pairs (e.g., [0.89, 0.98, 0.23, 0.65, 0.55]). The goal is to compare each model's cosine similarity vectors with human rating vectors and identify the model which outputs the best result in terms of being the closest to the way human rate similarity between the phrases.\n",
+    "\n",
+    "---\n",
+    "\n",
+    "**The minimum to do in this task**: compute correlations for at least _ONE_ model and human ratings. However, this should not be hard to run it for any other model as well. For examples on how to interpret the results, look at Section 5 Results of the original paper."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "our_dataset = space_10k"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "participant verb noun landmark input hilo\n",
+      "participant20 stray thought roam 7 low\n",
+      "participant20 stray discussion digress 6 high\n",
+      "participant20 stray eye roam 7 high\n",
+      "participant20 stray child digress 1 low\n",
+      "participant20 throb body pulse 5 high\n",
+      "participant20 throb head shudder 2 low\n",
+      "participant20 throb voice shudder 3 low\n",
+      "participant20 throb vein pulse 6 high\n",
+      "participant20 chatter machine click 4 high\n"
+     ]
+    }
+   ],
+   "source": [
+    "# load the task dataset\n",
+    "with open('./mitchell_lapata_acl08.txt', 'r') as f:\n",
+    "    phrase_dataset = f.read().splitlines()\n",
+    "\n",
+    "for line in phrase_dataset[:10]:\n",
+    "    print(line)\n",
+    "\n",
+    "# get all unique words\n",
+    "words = []\n",
+    "for line in phrase_dataset[1:]:\n",
+    "    _, verb, noun, landmark, _, _ = line.split()\n",
+    "    if verb not in words:\n",
+    "        words.append(verb)\n",
+    "    if noun not in words:\n",
+    "        words.append(noun)\n",
+    "    if landmark not in words:\n",
+    "        words.append(landmark)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "stray\n",
+      "roam\n",
+      "digress\n",
+      "throb\n",
+      "pulse\n",
+      "shudder\n",
+      "vein\n",
+      "chatter\n",
+      "gabble\n",
+      "tooth\n",
+      "rebound\n",
+      "ricochet\n",
+      "optimism\n",
+      "flicker\n",
+      "waver\n",
+      "flick\n",
+      "subside\n",
+      "lessen\n",
+      "symptom\n",
+      "slump\n",
+      "slouch\n",
+      "stoop\n",
+      "erupt\n",
+      "burst\n",
+      "temper\n",
+      "flare\n",
+      "recoil\n",
+      "flinch\n",
+      "prosper\n",
+      "fluctuate\n",
+      "falter\n",
+      "cigarette\n",
+      "reel\n",
+      "whirl\n",
+      "stagger\n",
+      "glow\n",
+      "cigar\n"
+     ]
+    }
+   ],
+   "source": [
+    "# simply check if all words that we have in our task dataset can be found in the reference corpus (the result should return nothing)\n",
+    "to_remove = []\n",
+    "for w in words:\n",
+    "    if w not in our_dataset:\n",
+    "        print(w)\n",
+    "        to_remove.append(w)\n",
+    "# if something is not found, makes sense to ignore phrases with such non-present words"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# cleaning the task dataset (we might call it phrase dataset from now on)\n",
+    "# we are removing all phrases which contain non-found words\n",
+    "# this would probably remove other words as well (those, which are paired with the non-found words)\n",
+    "\n",
+    "cleaned_phrase_dataset = []\n",
+    "for line in phrase_dataset:\n",
+    "    _, verb, noun, landmark, _, _ = line.split()\n",
+    "    if verb in to_remove or noun in to_remove or landmark in to_remove:\n",
+    "        continue\n",
+    "    cleaned_phrase_dataset.append(line)\n",
+    "\n",
+    "target_words = []\n",
+    "for line in cleaned_phrase_dataset[1:]:\n",
+    "    _, verb, noun, landmark, _, _ = line.split()\n",
+    "    if verb not in target_words:\n",
+    "        target_words.append(verb)\n",
+    "    if noun not in target_words:\n",
+    "        target_words.append(noun)\n",
+    "    if landmark not in target_words:\n",
+    "        target_words.append(landmark)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['participant verb noun landmark input hilo', 'participant20 bow butler submit 3 low', 'participant20 bow company submit 5 high', 'participant20 boom sale thunder 3 low', 'participant20 boom gun thunder 6 high', 'participant21 bow butler submit 2 low', 'participant21 bow company submit 6 high', 'participant21 boom gun thunder 6 high', 'participant21 boom sale thunder 5 low', 'participant22 bow butler submit 2 low', 'participant22 bow company submit 6 high', 'participant22 boom gun thunder 7 high', 'participant22 boom sale thunder 2 low', 'participant23 bow butler submit 3 low', 'participant23 bow company submit 4 high', 'participant23 boom sale thunder 3 low', 'participant23 boom gun thunder 5 high', 'participant24 bow butler submit 4 low', 'participant24 bow company submit 6 high', 'participant24 boom gun thunder 6 high', 'participant24 boom sale thunder 1 low', 'participant25 bow butler submit 5 low', 'participant25 bow company submit 5 high', 'participant25 boom gun thunder 6 high', 'participant25 boom sale thunder 2 low', 'participant26 bow butler submit 4 low', 'participant26 bow company submit 5 high', 'participant26 boom gun thunder 5 high', 'participant26 boom sale thunder 2 low', 'participant27 bow butler submit 2 low', 'participant27 bow company submit 4 high', 'participant27 boom sale thunder 2 low', 'participant27 boom gun thunder 6 high', 'participant28 bow butler submit 2 low', 'participant28 bow company submit 6 high', 'participant28 boom sale thunder 4 low', 'participant28 boom gun thunder 6 high', 'participant29 bow butler submit 2 low', 'participant29 bow company submit 2 high', 'participant29 boom gun thunder 6 high', 'participant29 boom sale thunder 5 low', 'participant36 bow head submit 3 low', 'participant36 bow government submit 6 high', 'participant36 boom noise thunder 6 high', 'participant36 boom export thunder 2 low', 'participant46 bow head submit 4 low', 'participant46 bow government submit 6 high', 'participant46 boom noise thunder 6 high', 'participant46 boom export thunder 4 low', 'participant47 bow head submit 3 low', 'participant47 bow government submit 3 high', 'participant47 boom noise thunder 6 high', 'participant47 boom export thunder 3 low', 'participant44 bow head submit 3 low', 'participant44 bow government submit 7 high', 'participant44 boom noise thunder 7 high', 'participant44 boom export thunder 5 low', 'participant45 bow head submit 5 low', 'participant45 bow government submit 7 high', 'participant45 boom noise thunder 7 high', 'participant45 boom export thunder 2 low', 'participant42 bow head submit 2 low', 'participant42 bow government submit 5 high', 'participant42 boom noise thunder 7 high', 'participant42 boom export thunder 3 low', 'participant43 bow head submit 5 low', 'participant43 bow government submit 3 high', 'participant43 boom noise thunder 6 high', 'participant43 boom export thunder 5 low', 'participant40 bow head submit 5 low', 'participant40 bow government submit 2 high', 'participant40 boom noise thunder 6 high', 'participant40 boom export thunder 3 low', 'participant41 bow head submit 1 low', 'participant41 bow government submit 5 high', 'participant41 boom noise thunder 6 high', 'participant41 boom export thunder 2 low', 'participant48 bow head submit 2 low', 'participant48 bow government submit 5 high', 'participant48 boom noise thunder 5 high', 'participant48 boom export thunder 1 low', 'participant49 bow head submit 3 low', 'participant49 bow government submit 6 high', 'participant49 boom noise thunder 5 high', 'participant49 boom export thunder 4 low', 'participant37 bow head submit 6 low', 'participant37 bow government submit 7 high', 'participant37 boom noise thunder 6 high', 'participant37 boom export thunder 2 low', 'participant19 bow butler submit 3 low', 'participant19 bow company submit 2 high', 'participant19 boom sale thunder 3 low', 'participant19 boom gun thunder 6 high', 'participant18 bow butler submit 5 low', 'participant18 bow company submit 5 high', 'participant18 boom gun thunder 6 high', 'participant18 boom sale thunder 2 low', 'participant35 bow head submit 2 low', 'participant35 bow government submit 6 high', 'participant35 boom noise thunder 7 high', 'participant35 boom export thunder 1 low', 'participant34 bow butler submit 4 low', 'participant34 bow company submit 6 high', 'participant34 boom gun thunder 6 high', 'participant34 boom sale thunder 4 low', 'participant33 bow butler submit 2 low', 'participant33 bow company submit 6 high', 'participant33 boom gun thunder 7 high', 'participant33 boom sale thunder 1 low', 'participant32 bow butler submit 2 low', 'participant32 bow company submit 2 high', 'participant32 boom gun thunder 4 high', 'participant32 boom sale thunder 3 low', 'participant31 bow butler submit 4 low', 'participant31 bow company submit 4 high', 'participant31 boom gun thunder 6 high', 'participant31 boom sale thunder 2 low', 'participant30 bow butler submit 6 low', 'participant30 bow company submit 4 high', 'participant30 boom gun thunder 7 high', 'participant30 boom sale thunder 3 low', 'participant11 bow butler submit 3 low', 'participant11 bow company submit 6 high', 'participant11 boom sale thunder 4 low', 'participant11 boom gun thunder 6 high', 'participant10 bow butler submit 7 low', 'participant10 bow company submit 7 high', 'participant10 boom sale thunder 6 low', 'participant10 boom gun thunder 7 high', 'participant13 bow butler submit 1 low', 'participant13 bow company submit 6 high', 'participant13 boom gun thunder 5 high', 'participant13 boom sale thunder 5 low', 'participant12 bow butler submit 2 low', 'participant12 bow company submit 6 high', 'participant12 boom sale thunder 2 low', 'participant12 boom gun thunder 7 high', 'participant15 bow butler submit 2 low', 'participant15 bow company submit 2 high', 'participant15 boom sale thunder 2 low', 'participant15 boom gun thunder 6 high', 'participant14 bow butler submit 5 low', 'participant14 bow company submit 3 high', 'participant14 boom sale thunder 1 low', 'participant14 boom gun thunder 3 high', 'participant17 bow butler submit 2 low', 'participant17 bow company submit 3 high', 'participant17 boom sale thunder 3 low', 'participant17 boom gun thunder 6 high', 'participant16 bow butler submit 2 low', 'participant16 bow company submit 2 high', 'participant16 boom gun thunder 4 high', 'participant16 boom sale thunder 1 low', 'participant55 bow head submit 4 low', 'participant55 bow government submit 6 high', 'participant55 boom noise thunder 7 high', 'participant55 boom export thunder 2 low', 'participant54 bow head submit 4 low', 'participant54 bow government submit 7 high', 'participant54 boom noise thunder 6 high', 'participant54 boom export thunder 1 low', 'participant57 bow head submit 4 low', 'participant57 bow government submit 6 high', 'participant57 boom noise thunder 7 high', 'participant57 boom export thunder 2 low', 'participant56 bow head submit 1 low', 'participant56 bow government submit 3 high', 'participant56 boom noise thunder 6 high', 'participant56 boom export thunder 1 low', 'participant51 bow head submit 1 low', 'participant51 bow government submit 7 high', 'participant51 boom noise thunder 7 high', 'participant51 boom export thunder 1 low', 'participant39 bow head submit 1 low', 'participant39 bow government submit 4 high', 'participant39 boom noise thunder 5 high', 'participant39 boom export thunder 4 low', 'participant53 bow head submit 3 low', 'participant53 bow government submit 6 high', 'participant53 boom noise thunder 7 high', 'participant53 boom export thunder 6 low', 'participant52 bow head submit 3 low', 'participant52 bow government submit 3 high', 'participant52 boom noise thunder 6 high', 'participant52 boom export thunder 1 low', 'participant60 bow head submit 4 low', 'participant60 bow government submit 2 high', 'participant60 boom noise thunder 7 high', 'participant60 boom export thunder 3 low', 'participant38 bow head submit 5 low', 'participant38 bow government submit 7 high', 'participant38 boom noise thunder 5 high', 'participant38 boom export thunder 2 low', 'participant59 bow head submit 2 low', 'participant59 bow government submit 7 high', 'participant59 boom noise thunder 6 high', 'participant59 boom export thunder 3 low', 'participant58 bow head submit 7 low', 'participant58 bow government submit 7 high', 'participant58 boom noise thunder 7 high', 'participant58 boom export thunder 5 low', 'participant1 bow butler submit 1 low', 'participant1 bow company submit 4 high', 'participant1 boom sale thunder 1 low', 'participant1 boom gun thunder 3 high', 'participant3 bow butler submit 2 low', 'participant3 bow company submit 2 high', 'participant3 boom sale thunder 2 low', 'participant3 boom gun thunder 3 high', 'participant2 bow butler submit 3 low', 'participant2 bow company submit 5 high', 'participant2 boom gun thunder 6 high', 'participant2 boom sale thunder 2 low', 'participant5 bow butler submit 3 low', 'participant5 bow company submit 6 high', 'participant5 boom sale thunder 2 low', 'participant5 boom gun thunder 6 high', 'participant4 bow butler submit 1 low', 'participant4 bow company submit 2 high', 'participant4 boom sale thunder 1 low', 'participant4 boom gun thunder 7 high', 'participant7 bow butler submit 1 low', 'participant7 bow company submit 5 high', 'participant7 boom gun thunder 5 high', 'participant7 boom sale thunder 6 low', 'participant6 bow butler submit 1 low', 'participant6 bow company submit 2 high', 'participant6 boom gun thunder 6 high', 'participant6 boom sale thunder 3 low', 'participant9 bow butler submit 4 low', 'participant9 bow company submit 5 high', 'participant9 boom sale thunder 4 low', 'participant9 boom gun thunder 7 high', 'participant8 bow butler submit 5 low', 'participant8 bow company submit 3 high', 'participant8 boom sale thunder 3 low', 'participant8 boom gun thunder 3 high', 'participant50 bow head submit 2 low', 'participant50 bow government submit 7 high', 'participant50 boom noise thunder 3 high', 'participant50 boom export thunder 4 low']\n"
+     ]
+    }
+   ],
+   "source": [
+    "#our code:\n",
+    "print(cleaned_phrase_dataset)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "def add(verb, noun):\n",
+    "    weight_verb = 0.8\n",
+    "    weight_noun = 1 - weight_verb\n",
+    "\n",
+    "    return weight_verb * verb + weight_noun * noun\n",
+    "\n",
+    "\n",
+    "def multiply(verb, noun):\n",
+    "    return verb * noun\n",
+    "\n",
+    "\n",
+    "def combined(verb, noun):\n",
+    "    weight_verb = 0.95\n",
+    "    weight_noun = 0\n",
+    "    weight_mul = 0.05\n",
+    "\n",
+    "    return weight_verb * verb + weight_noun * noun + weight_mul * verb * noun\n",
+    "\n",
+    "\n",
+    "composition_methods = [add, multiply, combined]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "from scipy.spatial.distance import cosine\n",
+    "\n",
+    "\"\"\"\n",
+    "grouped = {\n",
+    "    'low': {\n",
+    "        (verb, noun, landmark): {\n",
+    "            add: add_cosine,\n",
+    "            multiply: multiply_cosine,\n",
+    "            combined: combined_cosine,\n",
+    "            human: [participant1_input, participant2_input, ...]\n",
+    "        }\n",
+    "    }\n",
+    "}\n",
+    "\"\"\"\n",
+    "\n",
+    "grouped = {\n",
+    "    'high': {},\n",
+    "    'low': {}\n",
+    "}\n",
+    "\n",
+    "for phrase in cleaned_phrase_dataset[1:]:\n",
+    "    _, verb, noun, landmark, input, hilo = phrase.split()\n",
+    "\n",
+    "    combination = (verb, noun, landmark)\n",
+    "\n",
+    "    if combination not in grouped[hilo]:\n",
+    "        grouped[hilo][combination] = {'human': []}\n",
+    "        for composition_method in composition_methods:\n",
+    "            v1 = composition_method(our_dataset[verb], our_dataset[noun])\n",
+    "            v2 = composition_method(our_dataset[landmark], our_dataset[noun])\n",
+    "            grouped[hilo][combination][composition_method] = 1 - cosine(v1, v2)\n",
+    "\n",
+    "    grouped[hilo][combination]['human'].append(int(input))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {
+    "pycharm": {
+     "is_executing": true,
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>model</th>\n",
+       "      <th>high</th>\n",
+       "      <th>low</th>\n",
+       "      <th>rho</th>\n",
+       "      <th>pval</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>human</td>\n",
+       "      <td>5.360</td>\n",
+       "      <td>2.943</td>\n",
+       "      <td>1.000</td>\n",
+       "      <td>0.000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>add</td>\n",
+       "      <td>0.942</td>\n",
+       "      <td>0.861</td>\n",
+       "      <td>0.405</td>\n",
+       "      <td>0.320</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>multiply</td>\n",
+       "      <td>0.908</td>\n",
+       "      <td>0.896</td>\n",
+       "      <td>0.167</td>\n",
+       "      <td>0.693</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>combined</td>\n",
+       "      <td>0.903</td>\n",
+       "      <td>0.879</td>\n",
+       "      <td>0.286</td>\n",
+       "      <td>0.493</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "      model   high    low    rho   pval\n",
+       "0     human  5.360  2.943  1.000  0.000\n",
+       "1       add  0.942  0.861  0.405  0.320\n",
+       "2  multiply  0.908  0.896  0.167  0.693\n",
+       "3  combined  0.903  0.879  0.286  0.493"
+      ]
+     },
+     "execution_count": 24,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "import pandas as pd\n",
+    "\n",
+    "results = [['human']]\n",
+    "\n",
+    "all_human = []\n",
+    "for hifi in grouped:\n",
+    "    human = [sum(grouped_values['human']) / len(grouped_values['human']) for grouped_values in grouped[hifi].values()]\n",
+    "    all_human.extend(human)\n",
+    "    results[-1].append(sum(human) / len(human))\n",
+    "rho, pval = stats.spearmanr(all_human, all_human)\n",
+    "results[-1].extend([rho, pval])\n",
+    "\n",
+    "for composition_method in composition_methods:\n",
+    "    results.append([composition_method.__name__])\n",
+    "    complete_hifi = []\n",
+    "    for hifi in grouped:\n",
+    "        model = [grouped_values[composition_method] for grouped_values in grouped[hifi].values()]\n",
+    "        complete_hifi.extend(model)\n",
+    "        results[-1].append(sum(model) / len(model))\n",
+    "    rho, pval = stats.spearmanr(complete_hifi, all_human)\n",
+    "    results[-1].extend([rho, pval])\n",
+    "\n",
+    "\n",
+    "df = pd.DataFrame(results, columns=['model', 'high', 'low', 'rho', 'pval'])\n",
+    "df = np.round(df, decimals=3)\n",
+    "df"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "**Any comments/thoughts should go here:**\n",
+    "\n",
+    "The scores are quite different from the paper. This is very likely due to the fact that the dataset is very small. We only have 8 different combinations (4 low, 4 high), since the remaining words didn't appear in the pretrained models. Having such a small dataset, the scores are not really meaningful and comparable to the paper.\n",
+    "\n",
+    "Assuming, they were meaningful, it can be seen that the (weighted) addition is the closest to human judgement. For the *svd* and *ppmi*, it is followed by the multiplication method. The combination produces the least similar results to human judgement. For the *raw* space, the combined method performs slightly better than the multiplication method.\n",
+    "\n",
+    "In further experiments, the weights would need to be adjusted. In our cases, we just chose the best performing weights from the paper."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "# Literature\n",
+    "\n",
+    "  - [1] C. Silberer and M. Lapata. Learning grounded meaning representations with autoencoders. In Proceedings of the 52nd Annual Meeting of the Association for Computational Linguistics, pages 721–732, Baltimore, Maryland, USA, June 23–25 2014 2014. Association for Computational Linguistics.  \n",
+    "\n",
+    "  - [2] Mitchell, J., & Lapata, M. (2008). Vector-based Models of Semantic Composition. In Proceedings of ACL-08: HLT (pp. 236–244). Association for Computational Linguistics.\n",
+    "  \n",
+    "  - [3] T. Mikolov, I. Sutskever, K. Chen, G. S. Corrado, and J. Dean. Distributed representations of words and phrases and their compositionality. In Advances in neural information processing systems, pages 3111–3119, 2013."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "## Statement of contribution\n",
+    "\n",
+    "Briefly state how many times you have met for discussions, who was present, to what degree each member contributed to the discussion and the final answers you are submitting."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Marks\n",
+    "\n",
+    "This assignment has a total of 60 marks."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+<<<<<<< HEAD
+   "version": "3.9.10"
+=======
+   "version": "3.10.1"
+>>>>>>> d81bd62901b38d3314c4c71653870946d23e3107
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
