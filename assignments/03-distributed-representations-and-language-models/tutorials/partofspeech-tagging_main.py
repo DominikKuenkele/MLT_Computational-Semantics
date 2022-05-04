@@ -26,7 +26,6 @@ def main():
     num_params = sum([p.numel() for p in model.parameters()])
     print(model)
     print(f'Model parameters: {num_params}')
-
     # tell model we're going to train
     model.train()
     for e in range(3):
@@ -36,10 +35,12 @@ def main():
         for i, batch in enumerate(train_iter):
             sentences = batch.tokens
             labels    = batch.labels
-            
             # run sentences through the model
             output = model(sentences)
-            
+
+            print('Sentence:', sentences)
+            print('Labels', labels)
+            print('Output', output)
             #embed()
             #assert False
 
@@ -72,8 +73,10 @@ def main():
         sentences = batch.tokens
         labels    = batch.labels
 
+
         with torch.no_grad(): # dont collect gradients when testing
             output = model(sentences)
+
         batch_loss = loss(output.view(-1,num_labels), labels.view(-1))
         test_loss += batch_loss.item()
 
