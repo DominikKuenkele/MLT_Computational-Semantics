@@ -243,4 +243,5 @@ Thumbs.db #thumbnail cache on Windows
 
 *.pickle
 *.dill
+*.pt
 assignments/02-vector-semantics/data/
