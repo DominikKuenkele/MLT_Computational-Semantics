@@ -246,3 +246,4 @@ Thumbs.db #thumbnail cache on Windows
 *.pt
 assignments/02-vector-semantics/data/
 assignments/05-natural-language-inference/*.csv
+.idea/
