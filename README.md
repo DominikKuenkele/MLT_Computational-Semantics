@@ -1,2 +1,4 @@
 # computational-semantics
-Course materials for Computational Semantics LT2213
+> Part of the Master in Language Technology at the University of Gothenburg
+>
+> **Course:** Computational Semantics (LT2213)
